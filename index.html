@@ -351,6 +351,25 @@ a,button,input,select,.chip,.tbtn,.sbtn,.day,.metric,.goal,.habit,.nav a,.side-f
 .hcons .pc{font-family:var(--font-mono);font-size:13px;font-weight:600;min-width:42px;text-align:right}
 .quote{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:12px;padding:15px 20px;font-style:italic;color:var(--t2);font-size:13.5px;font-weight:500}
 
+
+/* ── premium timer ── */
+.seg-mode{max-width:340px;margin-bottom:4px}
+.ring-wrap{width:288px;height:288px}
+.ring-wrap svg{overflow:visible}
+.ring-track{stroke:var(--surface-2);stroke-width:13}
+.ring-prog{stroke:url(#rg);stroke-width:13;filter:drop-shadow(0 0 9px var(--gold-glow))}
+.tick{stroke:var(--surface-3);stroke-width:2.4;stroke-linecap:round;transition:stroke .35s var(--ease)}
+.tick.lit{stroke:var(--gold)}
+.ring-dot{fill:var(--gold-l);filter:drop-shadow(0 0 7px var(--gold));transition:opacity .3s}
+.ring-cat{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;font-size:13px;font-weight:700;color:var(--t2);transition:opacity .3s}
+.ring-cat .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.ring-wrap.running .ring-prog{animation:ringPulse 2.6s ease-in-out infinite}
+.ring-wrap.running .ring-dot{animation:dotPulse 1.7s ease-in-out infinite}
+@keyframes ringPulse{0%,100%{filter:drop-shadow(0 0 8px var(--gold-glow))}50%{filter:drop-shadow(0 0 20px var(--gold-glow))}}
+@keyframes dotPulse{0%,100%{filter:drop-shadow(0 0 6px var(--gold))}50%{filter:drop-shadow(0 0 15px var(--gold))}}
+.ring-wrap.done .ring-prog{animation:doneFlash .55s ease 2}
+@keyframes doneFlash{0%,100%{filter:drop-shadow(0 0 10px rgba(34,197,94,.5))}50%{filter:drop-shadow(0 0 28px rgba(34,197,94,.8))}}
+
 @media (max-width:880px){
   .app.show{grid-template-columns:1fr}
   .side{display:none}
@@ -402,9 +421,28 @@ a,button,input,select,.chip,.tbtn,.sbtn,.day,.metric,.goal,.habit,.nav a,.side-f
       <section class="view" data-view="timer">
         <div class="head"><div class="head-l"><div class="eyebrow">Модуль 1</div><h2 class="serif">Таймер</h2><p>Выбери сферу и засеки время. По сбросу сессия пишется в статистику.</p></div></div>
         <div class="timer-stage">
-          <div class="ring-wrap">
-            <svg viewBox="0 0 270 270"><circle class="ring-track" cx="135" cy="135" r="123"/><circle class="ring-prog idle" id="ringProg" cx="135" cy="135" r="123"/></svg>
-            <div class="ring-face"><div class="ring-time mono" id="ringTime">00:00</div><div class="ring-state" id="ringState">готов</div></div>
+          <div class="seg seg-mode" id="modeSeg">
+            <button data-mode="up" class="on">Секундомер</button>
+            <button data-mode="25">25 мин</button>
+            <button data-mode="50">50 мин</button>
+          </div>
+          <div class="ring-wrap" id="ringWrap">
+            <svg viewBox="0 0 280 280">
+              <defs>
+                <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="var(--gold-d)"/><stop offset="1" stop-color="var(--gold-l)"/>
+                </linearGradient>
+              </defs>
+              <g id="ticks"></g>
+              <circle class="ring-track" cx="140" cy="140" r="112"/>
+              <circle class="ring-prog idle" id="ringProg" cx="140" cy="140" r="112" transform="rotate(-90 140 140)"/>
+              <circle class="ring-dot" id="ringDot" r="6.5" cx="140" cy="28" style="opacity:0"/>
+            </svg>
+            <div class="ring-face">
+              <div class="ring-time mono" id="ringTime">00:00</div>
+              <div class="ring-state" id="ringState">готов</div>
+              <div class="ring-cat" id="ringCat" style="opacity:0"></div>
+            </div>
           </div>
           <div class="cats" id="catChips"></div>
           <div class="timer-ctl">
@@ -494,8 +532,8 @@ let GOALS=[];         // {id,title,catId,type,target,current,unit,status,created
 const catById=id=>CATS.find(c=>c.id===id)||{name:'—',color:'#888'};
 function scheduled(h,d){const wd=d.getDay();return h.freq==='weekdays'?(wd!==0&&wd!==6):true;}
 const DEF_CATS=[
-  {name:'Здоровье',color:'#5FB98C'},{name:'Карьера',color:'#E3A857'},{name:'Обучение',color:'#7B9FD0'},
-  {name:'Финансы',color:'#C9A06A'},{name:'Отношения',color:'#D98BA5'},{name:'Творчество',color:'#9B8BD9'},
+  {name:'Карьера',color:'#5AB0E0'},{name:'Учёба',color:'#5FB98C'},{name:'Повышение квалификации',color:'#C084FC'},
+  {name:'Духовность',color:'#E3A857'},{name:'DETROYD',color:'#F5C842'},
 ];
 
 async function loadAll(){
@@ -530,12 +568,12 @@ async function seedSampleData(){
   toast('Заполняю примерами…');
   const cid=name=>{const c=CATS.find(x=>x.name===name);return c?c.id:(CATS[0]&&CATS[0].id);};
   await db.from('goals').insert([
-    {user_id:UID,title:'Прочитать 12 книг за год',category_id:cid('Обучение'),type:'numeric',target_value:12,current_value:7,unit:'кн',status:'active'},
-    {user_id:UID,title:'Накопить подушку $5000',category_id:cid('Финансы'),type:'numeric',target_value:5000,current_value:3200,unit:'$',status:'active'},
-    {user_id:UID,title:'Выучить 1000 слов',category_id:cid('Обучение'),type:'numeric',target_value:1000,current_value:920,unit:'сл',status:'active'},
-    {user_id:UID,title:'Запустить сайд-проект',category_id:cid('Карьера'),type:'binary',status:'active'},
+    {user_id:UID,title:'Прочитать 12 книг за год',category_id:cid('Учёба'),type:'numeric',target_value:12,current_value:7,unit:'кн',status:'active'},
+    {user_id:UID,title:'Накопить подушку $5000',category_id:cid('Карьера'),type:'numeric',target_value:5000,current_value:3200,unit:'$',status:'active'},
+    {user_id:UID,title:'Выучить 1000 слов',category_id:cid('Учёба'),type:'numeric',target_value:1000,current_value:920,unit:'сл',status:'active'},
+    {user_id:UID,title:'Запустить проект в DETROYD',category_id:cid('DETROYD'),type:'binary',status:'active'},
   ]);
-  const mg=(await db.from('goals').insert({user_id:UID,title:'Подготовиться к полумарафону',category_id:cid('Здоровье'),type:'milestone',status:'active'}).select().single()).data;
+  const mg=(await db.from('goals').insert({user_id:UID,title:'Подготовиться к полумарафону',category_id:cid('Духовность'),type:'milestone',status:'active'}).select().single()).data;
   if(mg)await db.from('goal_milestones').insert([
     {goal_id:mg.id,user_id:UID,title:'Пробежать 5 км',done:true,sort_order:0},
     {goal_id:mg.id,user_id:UID,title:'Пробежать 10 км',done:true,sort_order:1},
@@ -543,10 +581,10 @@ async function seedSampleData(){
     {goal_id:mg.id,user_id:UID,title:'Пробежать 21 км',done:false,sort_order:3},
   ]);
   const hb=(await db.from('habits').insert([
-    {user_id:UID,title:'Утренняя зарядка',category_id:cid('Здоровье'),type:'binary',frequency_type:'daily'},
-    {user_id:UID,title:'Чтение 20 страниц',category_id:cid('Обучение'),type:'binary',frequency_type:'daily'},
-    {user_id:UID,title:'Английский',category_id:cid('Обучение'),type:'binary',frequency_type:'weekdays'},
-    {user_id:UID,title:'Без сахара',category_id:cid('Здоровье'),type:'binary',frequency_type:'daily'},
+    {user_id:UID,title:'Утренняя зарядка',category_id:cid('Духовность'),type:'binary',frequency_type:'daily'},
+    {user_id:UID,title:'Чтение 20 страниц',category_id:cid('Учёба'),type:'binary',frequency_type:'daily'},
+    {user_id:UID,title:'Английский',category_id:cid('Учёба'),type:'binary',frequency_type:'weekdays'},
+    {user_id:UID,title:'Без сахара',category_id:cid('Духовность'),type:'binary',frequency_type:'daily'},
   ]).select()).data||[];
   const logRows=[],sessRows=[];
   const pat={0:i=>i<10?0.3:0.92,1:i=>clamp(0.5+(35-i)/35*0.45,0,0.97),2:()=>0.85,3:()=>0.96};
@@ -554,9 +592,9 @@ async function seedSampleData(){
     hb.forEach((h,idx)=>{const wd=d.getDay();if(h.frequency_type==='weekdays'&&(wd===0||wd===6))return;
       if(rnd()<pat[idx](i))logRows.push({habit_id:h.id,user_id:UID,log_date:iso(d),done:true,value:1,source:'web'});});
     const learn=clamp(Math.round(18+(34-i)*0.8+(rnd()*16-8)),5,120);
-    sessRows.push({user_id:UID,category_id:cid('Обучение'),started_at:d.toISOString(),duration_seconds:learn*60,source:'web'});
+    sessRows.push({user_id:UID,category_id:cid('Учёба'),started_at:d.toISOString(),duration_seconds:learn*60,source:'web'});
     let hh=42+(rnd()*14-7);if(i<10)hh-=(10-i)*2.6;hh=clamp(Math.round(hh),0,120);
-    if(hh>0)sessRows.push({user_id:UID,category_id:cid('Здоровье'),started_at:d.toISOString(),duration_seconds:hh*60,source:'web'});
+    if(hh>0)sessRows.push({user_id:UID,category_id:cid('Духовность'),started_at:d.toISOString(),duration_seconds:hh*60,source:'web'});
     const wd=d.getDay();if(wd!==0&&wd!==6)sessRows.push({user_id:UID,category_id:cid('Карьера'),started_at:d.toISOString(),duration_seconds:clamp(Math.round(50+(rnd()*30-15)),10,150)*60,source:'web'});
   }
   if(logRows.length)await db.from('habit_logs').insert(logRows);
@@ -585,21 +623,37 @@ function buildNav(){const nav=document.getElementById('nav'),tab=document.getEle
 let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2600);}
 
 /* ================= таймер ================= */
-const CYCLE=3600,RR=123,CIRC=2*Math.PI*RR;
-let elapsed=0,running=false,tick=null,selCat=null;
+const RR=112,CIRC=2*Math.PI*RR;
+let mode='up',elapsed=0,running=false,tick=null,selCat=null;
+const totalSecs=()=>mode==='up'?3600:mode*60;
+function buildTicks(){const g=document.getElementById('ticks');if(!g)return;let h='';for(let i=0;i<60;i++){const a=(i*6-90)*Math.PI/180,big=i%5===0,r1=128,r2=big?137:133,x1=140+r1*Math.cos(a),y1=140+r1*Math.sin(a),x2=140+r2*Math.cos(a),y2=140+r2*Math.sin(a);h+=`<line class="tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;}g.innerHTML=h;}
+function fmt(s){s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,mm=String(m).padStart(2,'0'),ss=String(x).padStart(2,'0');return h>0?`${h}:${mm}:${ss}`:`${mm}:${ss}`;}
+function paintRing(){const tot=totalSecs(),frac=mode==='up'?(elapsed%3600)/3600:Math.min(1,elapsed/tot);
+  const p=document.getElementById('ringProg');p.setAttribute('stroke-dasharray',CIRC);p.setAttribute('stroke-dashoffset',CIRC*(1-frac));
+  document.getElementById('ringTime').textContent=fmt(mode==='up'?elapsed:Math.max(0,tot-elapsed));
+  const ang=(-90+frac*360)*Math.PI/180,dot=document.getElementById('ringDot');
+  dot.setAttribute('cx',(140+RR*Math.cos(ang)).toFixed(1));dot.setAttribute('cy',(140+RR*Math.sin(ang)).toFixed(1));dot.style.opacity=frac>0?1:0;
+  const lit=Math.round(frac*60);document.querySelectorAll('#ticks .tick').forEach((t,i)=>t.classList.toggle('lit',i<lit));}
+function setMode(m){if(running)return;mode=m;elapsed=0;document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===String(m)));document.getElementById('ringProg').classList.add('idle');paintRing();runUI(false);}
+function paintCat(){const el=document.getElementById('ringCat');if(selCat!==null&&CATS[selCat]){const c=CATS[selCat];el.innerHTML=`<span class="dot" style="background:${c.color}"></span>${c.name}`;el.style.opacity=1;
+    const mins=SESSIONS.filter(x=>x.date===iso(TODAY)&&x.catId===c.id).reduce((a,x)=>a+x.minutes,0);
+    document.getElementById('timerHint').textContent=`Сегодня в «${c.name}»: ${mins} мин`;}
+  else{el.innerHTML='';el.style.opacity=0;document.getElementById('timerHint').textContent='Запусти — и время пойдёт в выбранную сферу';}}
 function renderCats(){const box=document.getElementById('catChips');box.innerHTML='';
-  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='chip'+(i===selCat?' sel':'');
-    b.innerHTML=`<span class="dot" style="background:${c.color}"></span>${c.name}`;
-    b.onclick=()=>{selCat=i;renderCats();document.documentElement.style.setProperty('--accent',c.color);};box.appendChild(b);});}
-function fmt(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,mm=String(m).padStart(2,'0'),ss=String(x).padStart(2,'0');return h>0?`${h}:${mm}:${ss}`:`${mm}:${ss}`;}
-function paintRing(){const p=document.getElementById('ringProg'),f=(elapsed%CYCLE)/CYCLE;p.setAttribute('stroke-dasharray',CIRC);p.setAttribute('stroke-dashoffset',CIRC*(1-f));document.getElementById('ringTime').textContent=fmt(elapsed);}
-function runUI(on){document.getElementById('playBtn').innerHTML=icon(on?'pause':'play');const st=document.getElementById('ringState');st.textContent=on?'идёт':(elapsed?'пауза':'готов');st.classList.toggle('run',on);document.getElementById('ringProg').classList.toggle('idle',!on);}
-function toggleTimer(){running=!running;if(running){if(selCat===null){selCat=0;renderCats();document.documentElement.style.setProperty('--accent',CATS[0].color);}tick=setInterval(()=>{elapsed++;paintRing();},1000);}else clearInterval(tick);runUI(running);}
+  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='chip'+(i===selCat?' sel':'');b.innerHTML=`<span class="dot" style="background:${c.color}"></span>${c.name}`;b.onclick=()=>{selCat=i;renderCats();};box.appendChild(b);});paintCat();}
+function runUI(on){document.getElementById('playBtn').innerHTML=icon(on?'pause':'play');const st=document.getElementById('ringState');st.textContent=on?(mode==='up'?'идёт':'фокус'):(elapsed?'пауза':'готов');st.classList.toggle('run',on);document.getElementById('ringProg').classList.toggle('idle',!on);document.getElementById('ringWrap').classList.toggle('running',on);}
+function saveSession(secs){if(secs<5||selCat===null||!CATS[selCat])return;const c=CATS[selCat],mins=Math.max(1,Math.round(secs/60));
+  SESSIONS.push({date:iso(TODAY),catId:c.id,minutes:mins});paintCat();
+  if(db&&UID){const started=new Date(Date.now()-secs*1000);db.from('timer_sessions').insert({user_id:UID,category_id:c.id,started_at:started.toISOString(),ended_at:new Date().toISOString(),duration_seconds:secs,source:'web'}).then(({error})=>{if(error)toast('Не сохранилось: '+error.message);});}}
+function completeFocus(){clearInterval(tick);running=false;saveSession(totalSecs());
+  const w=document.getElementById('ringWrap');w.classList.add('done');setTimeout(()=>w.classList.remove('done'),1300);
+  toast('🎉 Фокус завершён · сессия записана');elapsed=0;document.getElementById('ringProg').classList.add('idle');paintRing();runUI(false);}
+function toggleTimer(){running=!running;
+  if(running){if(selCat===null){selCat=0;renderCats();}tick=setInterval(()=>{elapsed++;paintRing();if(mode!=='up'&&elapsed>=totalSecs())completeFocus();},1000);}
+  else clearInterval(tick);
+  runUI(running);}
 async function resetTimer(){clearInterval(tick);
-  if(elapsed>=5&&selCat!==null&&CATS[selCat]){const c=CATS[selCat];const secs=elapsed;const mins=Math.max(1,Math.round(secs/60));
-    SESSIONS.push({date:iso(TODAY),catId:c.id,minutes:mins});toast(`Сессия записана: ${mins} мин · ${c.name}`);
-    if(db&&UID){const started=new Date(Date.now()-secs*1000);
-      db.from('timer_sessions').insert({user_id:UID,category_id:c.id,started_at:started.toISOString(),ended_at:new Date().toISOString(),duration_seconds:secs,source:'web'}).then(({error})=>{if(error)toast('Не сохранилось: '+error.message);});}}
+  if(elapsed>=5&&selCat!==null&&CATS[selCat]){const secs=mode==='up'?elapsed:Math.min(elapsed,totalSecs());saveSession(secs);toast(`Сессия записана: ${Math.max(1,Math.round(secs/60))} мин · ${CATS[selCat].name}`);}
   running=false;elapsed=0;document.getElementById('ringProg').classList.add('idle');paintRing();runUI(false);}
 
 /* ================= цели ================= */
@@ -813,9 +867,10 @@ async function sendMagicLink(){const email=document.getElementById('email').valu
   finally{b.disabled=false;b.textContent='Прислать ссылку для входа';}}
 async function logout(){if(db)await db.auth.signOut();location.hash='';showAuth();}
 
-buildNav();hydrate();renderCats();resetTimer();
+buildNav();hydrate();buildTicks();renderCats();resetTimer();
 document.getElementById('playBtn').onclick=toggleTimer;
 document.getElementById('resetBtn').onclick=resetTimer;
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode==='up'?'up':Number(b.dataset.mode)));
 document.getElementById('loginBtn').onclick=sendMagicLink;
 document.getElementById('email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
 document.getElementById('logoutBtn').onclick=logout;
