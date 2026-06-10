@@ -5,307 +5,239 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1116">
 <title>Вектор — трекер развития</title>
-
-<!-- Telegram Mini App SDK: безвреден вне Telegram, нужен для Phase 5b -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Supabase JS v2 (UMD) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
 <style>
-/* ============================================================
-   ВЕКТОР — дизайн-токены (приборная тёмная тема)
-   ============================================================ */
 :root{
-  --bg:#0E1116;
-  --surface:#161A21;
-  --surface-2:#1C212A;
-  --surface-3:#232934;
-  --line:rgba(255,255,255,.07);
-  --line-strong:rgba(255,255,255,.12);
-  --text:#E9ECEF;
-  --dim:#98A0AC;
-  --faint:#5A626E;
-  --accent:#E3A857;          /* амбер — импульс/фокус/активное */
-  --accent-soft:rgba(227,168,87,.13);
-  --accent-glow:rgba(227,168,87,.30);
-  --cool:#7B9FD0;            /* холодный slate — вторичные данные */
-  --good:#5FB98C;            /* тренд вверх */
-  --warn:#E08A63;            /* тренд вниз / спад */
-  --r:12px;
-  --r-sm:9px;
-  --ease:cubic-bezier(.4,0,.2,1);
-  --t:.26s var(--ease);
-  --sidebar:248px;
-  --shell-max:1080px;
+  --bg:#0E1116;--surface:#161A21;--surface-2:#1C212A;--surface-3:#232934;
+  --line:rgba(255,255,255,.07);--line-strong:rgba(255,255,255,.12);
+  --text:#E9ECEF;--dim:#98A0AC;--faint:#5A626E;
+  --accent:#E3A857;--accent-soft:rgba(227,168,87,.13);--accent-glow:rgba(227,168,87,.30);
+  --cool:#7B9FD0;--good:#5FB98C;--warn:#E08A63;
+  --r:12px;--r-sm:9px;--ease:cubic-bezier(.4,0,.2,1);--t:.26s var(--ease);
+  --sidebar:248px;--shell-max:1080px;
 }
-
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:15px;
-  line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-  letter-spacing:.1px;
-  overflow:hidden;
-}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:.1px;overflow:hidden}
 .serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:.2px}
 .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-input{font-family:inherit}
+input,select{font-family:inherit}
 svg{display:block}
-
-/* акцентная подсветка фокуса для клавиатуры — часть quality floor */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
-/* ============================================================
-   Экран авторизации
-   ============================================================ */
-.auth{
-  position:fixed;inset:0;display:none;
-  align-items:center;justify-content:center;padding:24px;
-  background:
-    radial-gradient(120% 80% at 50% -10%, rgba(227,168,87,.07), transparent 60%),
-    var(--bg);
-}
-.auth.show{display:flex}
-.auth-card{
-  width:100%;max-width:380px;text-align:center;
-  animation:rise .55s var(--ease) both;
-}
-.auth-mark{margin:0 auto 22px;width:54px;height:54px;color:var(--accent)}
-.auth h1{font-size:42px;line-height:1.05;font-weight:400;margin-bottom:6px}
-.auth .sub{color:var(--dim);font-size:14px;margin-bottom:30px}
-.field{
-  display:flex;flex-direction:column;gap:10px;text-align:left;
-}
-.field input{
-  width:100%;padding:13px 15px;border-radius:var(--r-sm);
-  background:var(--surface-2);border:1px solid var(--line);
-  color:var(--text);font-size:15px;transition:border-color var(--t),background var(--t);
-}
-.field input::placeholder{color:var(--faint)}
-.field input:focus{outline:none;border-color:var(--accent);background:var(--surface-3)}
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:9px;
-  padding:13px 18px;border-radius:var(--r-sm);font-weight:600;font-size:15px;
-  background:var(--accent);color:#1a1205;width:100%;
-  transition:transform .12s var(--ease),filter var(--t),opacity var(--t);
-}
-.btn:hover{filter:brightness(1.06)}
-.btn:active{transform:scale(.985)}
-.btn:disabled{opacity:.55;cursor:default}
-.btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
-.btn.ghost:hover{background:var(--surface-3);filter:none}
-.auth-note{margin-top:18px;font-size:13px;color:var(--faint);min-height:18px;transition:color var(--t)}
-.auth-note.ok{color:var(--good)}
-.auth-note.err{color:var(--warn)}
-
-/* ============================================================
-   Оболочка приложения
-   ============================================================ */
 .app{position:fixed;inset:0;display:none;grid-template-columns:var(--sidebar) 1fr}
 .app.show{display:grid}
-
-/* — Сайдбар (десктоп) — */
-.side{
-  border-right:1px solid var(--line);
-  display:flex;flex-direction:column;
-  padding:22px 16px;gap:4px;background:var(--surface);
-}
+.auth{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 80% at 50% -10%, rgba(227,168,87,.07), transparent 60%),var(--bg)}
+.auth.show{display:flex}
+.auth-card{width:100%;max-width:380px;text-align:center;animation:enter .5s var(--ease) both}
+.auth-mark{margin:0 auto 22px;width:54px;height:54px;color:var(--accent)}
+.auth h1{font-family:'Instrument Serif',serif;font-size:42px;line-height:1.05;margin-bottom:6px}
+.auth .sub{color:var(--dim);font-size:14px;margin-bottom:30px}
+.field{display:flex;flex-direction:column;gap:10px;text-align:left}
+.field input{width:100%;padding:13px 15px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-size:15px;transition:border-color var(--t),background var(--t)}
+.field input::placeholder{color:var(--faint)}
+.field input:focus{outline:none;border-color:var(--accent);background:var(--surface-3)}
+.field .btn{width:100%;padding:13px}
+.auth-note{margin-top:18px;font-size:13px;color:var(--faint);min-height:18px}
+.auth-note.ok{color:var(--good)}.auth-note.err{color:var(--warn)}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:54px 28px;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.empty .glyph{width:58px;height:58px;color:var(--faint);margin-bottom:12px;opacity:.85}
+.empty h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:24px}
+.empty p{color:var(--dim);max-width:40ch;font-size:14px}
+.empty .btn{margin-top:16px}
+.side{border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 16px;gap:4px;background:var(--surface)}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px}
 .brand .logo{width:30px;height:30px;color:var(--accent);flex:none}
 .brand .name{font-family:'Instrument Serif',serif;font-size:25px;letter-spacing:.4px}
-.brand .name b{font-weight:400}
-
 .nav{position:relative;display:flex;flex-direction:column;gap:2px}
-.nav-ind{
-  position:absolute;left:0;height:42px;width:100%;border-radius:var(--r-sm);
-  background:var(--accent-soft);border:1px solid rgba(227,168,87,.22);
-  transition:transform .3s var(--ease),opacity .2s var(--ease);
-  pointer-events:none;
-}
-.nav a{
-  position:relative;z-index:1;display:flex;align-items:center;gap:12px;
-  height:42px;padding:0 12px;border-radius:var(--r-sm);
-  color:var(--dim);font-weight:500;font-size:14.5px;
-  transition:color var(--t);
-}
+.nav-ind{position:absolute;left:0;height:42px;width:100%;border-radius:var(--r-sm);background:var(--accent-soft);border:1px solid rgba(227,168,87,.22);transition:transform .3s var(--ease),opacity .2s var(--ease);pointer-events:none}
+.nav a{position:relative;z-index:1;display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:var(--r-sm);color:var(--dim);font-weight:500;font-size:14.5px;transition:color var(--t)}
 .nav a:hover{color:var(--text)}
 .nav a.active{color:var(--accent)}
 .nav a svg{width:20px;height:20px;flex:none}
-.nav a .lbl{transition:transform var(--t)}
-
 .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid var(--line)}
-.side-foot button{
-  display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;
-  border-radius:var(--r-sm);color:var(--dim);font-size:14px;font-weight:500;
-  transition:color var(--t),background var(--t);width:100%;
-}
+.side-foot button{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:var(--r-sm);color:var(--dim);font-size:14px;font-weight:500;transition:color var(--t),background var(--t);width:100%}
 .side-foot button:hover{color:var(--text);background:var(--surface-2)}
 .side-foot button svg{width:19px;height:19px;flex:none}
-.who{font-size:12px;color:var(--faint);padding:8px 12px 0;word-break:break-all}
+.who{font-size:12px;color:var(--faint);padding:8px 12px 0}
 
-/* — Контент — */
 .main{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
 .main::-webkit-scrollbar{width:9px}
 .main::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:9px;border:3px solid var(--bg)}
 .wrap{max-width:var(--shell-max);margin:0 auto;padding:42px 40px 120px}
-
 .view{display:none}
 .view.active{display:block;animation:enter .3s var(--ease)}
 @keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-.head{margin-bottom:32px}
-.eyebrow{
-  font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
-  color:var(--accent);margin-bottom:9px;
-}
+.head{margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.head-l{min-width:0}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
 .head h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:40px;line-height:1.05}
 .head p{color:var(--dim);font-size:15px;margin-top:8px;max-width:54ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 16px;border-radius:var(--r-sm);font-weight:600;font-size:14px;background:var(--accent);color:#1a1205;transition:transform .12s var(--ease),filter var(--t)}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:scale(.985)}
+.btn svg{width:17px;height:17px}
+.btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--surface-3);filter:none}
 
-/* — Карточки — (плоские, hairline, без теней) */
-.card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:24px;
-}
+.banner{display:flex;align-items:center;gap:11px;background:var(--accent-soft);border:1px solid rgba(227,168,87,.25);color:var(--text);padding:11px 16px;border-radius:var(--r-sm);font-size:13.5px;margin-bottom:24px}
+.banner svg{width:18px;height:18px;color:var(--accent);flex:none}
 
-/* — Пустое состояние — */
-.empty{
-  display:flex;flex-direction:column;align-items:center;text-align:center;
-  padding:64px 28px;gap:8px;
-}
-.empty .glyph{width:64px;height:64px;color:var(--faint);margin-bottom:14px;opacity:.85}
-.empty h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px}
-.empty p{color:var(--dim);max-width:40ch;font-size:14.5px}
-.empty .btn{width:auto;margin-top:18px}
-.empty .btn svg{width:18px;height:18px}
-
-/* — Метрик-стрип (заготовка для статистики) — */
-.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
-.metric .k{font-size:12.5px;color:var(--dim);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.metric .k{font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.metric .k svg{width:15px;height:15px}
 .metric .v{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-size:30px;margin-top:8px;letter-spacing:-.5px}
 .metric .v small{font-size:14px;color:var(--faint);margin-left:3px}
 .trend{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;margin-top:7px}
 .trend svg{width:14px;height:14px}
-.trend.up{color:var(--good)} .trend.down{color:var(--warn)} .trend.flat{color:var(--faint)}
+.trend.up{color:var(--good)}.trend.down{color:var(--warn)}.trend.flat{color:var(--faint)}
 
-/* ============================================================
-   Сигнатура — кольцо таймера
-   ============================================================ */
-.timer-stage{display:flex;flex-direction:column;align-items:center;gap:30px;padding:18px 0 8px}
-.ring-wrap{position:relative;width:280px;height:280px}
+/* timer */
+.timer-stage{display:flex;flex-direction:column;align-items:center;gap:28px;padding:14px 0 8px}
+.ring-wrap{position:relative;width:270px;height:270px}
 .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
 .ring-track{fill:none;stroke:var(--surface-2);stroke-width:10}
-.ring-prog{
-  fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;
-  filter:drop-shadow(0 0 9px var(--accent-glow));
-  transition:stroke-dashoffset 1s linear;
-}
+.ring-prog{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;filter:drop-shadow(0 0 9px var(--accent-glow));transition:stroke-dashoffset 1s linear}
 .ring-prog.idle{transition:stroke-dashoffset .4s var(--ease)}
-.ring-face{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:5px;
-}
-.ring-time{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-size:52px;letter-spacing:1px;line-height:1}
-.ring-state{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim);transition:color var(--t)}
+.ring-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.ring-time{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-size:50px;letter-spacing:1px;line-height:1}
+.ring-state{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim)}
 .ring-state.run{color:var(--accent)}
-
 .cats{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;max-width:560px}
-.chip{
-  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;
-  border-radius:999px;background:var(--surface);border:1px solid var(--line);
-  color:var(--dim);font-size:13.5px;font-weight:500;
-  transition:border-color var(--t),color var(--t),background var(--t),transform .12s var(--ease);
-}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--dim);font-size:13.5px;font-weight:500;transition:border-color var(--t),color var(--t),background var(--t),transform .12s var(--ease)}
 .chip:hover{color:var(--text);border-color:var(--line-strong)}
 .chip:active{transform:scale(.97)}
 .chip .dot{width:9px;height:9px;border-radius:50%;flex:none}
 .chip.sel{background:var(--accent-soft);border-color:rgba(227,168,87,.4);color:var(--text)}
-
 .timer-ctl{display:flex;gap:12px}
-.tbtn{
-  width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:var(--surface);border:1px solid var(--line);color:var(--text);
-  transition:background var(--t),border-color var(--t),transform .12s var(--ease);
-}
-.tbtn:hover{background:var(--surface-2);border-color:var(--line-strong)}
+.tbtn{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--line);color:var(--text);transition:background var(--t),border-color var(--t),transform .12s var(--ease)}
+.tbtn:hover{background:var(--surface-2)}
 .tbtn:active{transform:scale(.93)}
 .tbtn svg{width:24px;height:24px}
 .tbtn.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;width:72px;height:72px}
-.tbtn.primary:hover{filter:brightness(1.06)}
 .tbtn.primary svg{width:28px;height:28px}
-.timer-hint{font-size:12.5px;color:var(--faint);margin-top:2px}
+.timer-hint{font-size:12.5px;color:var(--faint)}
 
-/* — Демо-баннер конфигурации — */
-.banner{
-  display:flex;align-items:center;gap:11px;
-  background:var(--accent-soft);border:1px solid rgba(227,168,87,.25);
-  color:var(--text);padding:11px 16px;border-radius:var(--r-sm);
-  font-size:13.5px;margin-bottom:24px;
-}
-.banner svg{width:18px;height:18px;color:var(--accent);flex:none}
-.banner code{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--accent)}
+/* goals */
+.glist{display:flex;flex-direction:column;gap:14px}
+.goal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
+.goal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.goal-title{font-size:16px;font-weight:600;display:flex;align-items:center;gap:9px}
+.goal-title .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pill{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.pill.active{color:var(--accent);border-color:rgba(227,168,87,.3);background:var(--accent-soft)}
+.pill.done{color:var(--good);border-color:rgba(95,185,140,.3);background:rgba(95,185,140,.1)}
+.bar{height:8px;border-radius:6px;background:var(--surface-2);overflow:hidden;margin:14px 0 8px}
+.bar>i{display:block;height:100%;border-radius:6px;transition:width .5s var(--ease)}
+.goal-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--dim);flex-wrap:wrap;gap:6px}
+.goal-meta .mono{color:var(--text)}
+.goal-fc{font-size:12.5px;color:var(--faint);margin-top:9px;display:flex;align-items:center;gap:7px}
+.goal-fc svg{width:14px;height:14px;color:var(--cool)}
+.goal-ctl{display:flex;gap:8px;margin-top:14px;align-items:center}
+.sbtn{width:34px;height:34px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;transition:background var(--t)}
+.sbtn:hover{background:var(--surface-3)}
+.ms{display:flex;flex-direction:column;gap:9px;margin:12px 0 4px}
+.ms-row{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--dim);cursor:pointer}
+.ms-row .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;flex:none;transition:all var(--t)}
+.ms-row .box svg{width:12px;height:12px}
+.ms-row.on{color:var(--text)}
+.ms-row.on .box{background:var(--accent);border-color:var(--accent);color:#1a1205}
 
-/* — Тост — */
-.toast{
-  position:fixed;left:50%;bottom:96px;transform:translate(-50%,20px);
-  background:var(--surface-3);border:1px solid var(--line-strong);
-  color:var(--text);padding:11px 18px;border-radius:999px;font-size:13.5px;
-  opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .25s var(--ease);z-index:50;
-}
+/* habits */
+.hlist{display:flex;flex-direction:column;gap:12px}
+.habit{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.habit-main{flex:1;min-width:150px}
+.habit-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px}
+.habit-name .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.habit-freq{font-size:12.5px;color:var(--faint);margin-top:3px}
+.streak{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:15px;min-width:44px}
+.streak svg{width:16px;height:16px;color:var(--accent)}
+.days{display:flex;gap:6px}
+.day{width:34px;height:38px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--faint);transition:background var(--t),transform .12s var(--ease)}
+.day .dw{font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.day .dn{font-size:12px;font-family:'DM Mono',monospace}
+.day.done{background:var(--accent-soft);border-color:rgba(227,168,87,.4);color:var(--accent)}
+.day.today{box-shadow:0 0 0 2px var(--accent) inset}
+.day.tap{cursor:pointer}
+.day.tap:active{transform:scale(.9)}
+.hpct{font-family:'DM Mono',monospace;font-size:14px;color:var(--dim);min-width:46px;text-align:right}
+
+/* stats */
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin-bottom:16px}
+.chart-card h4{font-size:14px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.chart-card h4 svg{width:16px;height:16px;color:var(--accent)}
+.chart-card .cap{font-size:12.5px;color:var(--faint);margin-bottom:16px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--dim);margin-top:10px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.cat-bars{display:flex;flex-direction:column;gap:11px}
+.cat-bar{display:grid;grid-template-columns:96px 1fr 58px;align-items:center;gap:12px;font-size:13px}
+.cat-bar .nm{display:flex;align-items:center;gap:8px;color:var(--dim)}
+.cat-bar .nm .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.cat-bar .track{height:9px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.cat-bar .track>i{display:block;height:100%;border-radius:6px;transition:width .5s var(--ease)}
+.cat-bar .val{font-family:'DM Mono',monospace;text-align:right;color:var(--dim)}
+.heat{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px}
+.heat-col{display:flex;flex-direction:column;gap:4px}
+.heat-cell{width:14px;height:14px;border-radius:3px}
+.insight{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:var(--surface)}
+.insight.down{border-left-color:var(--warn)}
+.insight.up{border-left-color:var(--good)}
+.ilabel{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.insight p{font-size:13.5px;margin:5px 0;line-height:1.55;color:var(--dim)}
+.insight p b{color:var(--text)}
+.tag{font-family:'DM Mono',monospace;font-size:10px;padding:1px 6px;border-radius:5px;background:var(--surface-2);color:var(--dim);margin-right:6px;text-transform:uppercase;letter-spacing:.3px}
+.tag.fact{color:var(--good)}.tag.hyp{color:var(--cool)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(8,10,13,.66);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal-bg.show{display:flex;animation:enter .2s var(--ease)}
+.modal{width:100%;max-width:430px;background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;padding:24px}
+.modal h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:25px;margin-bottom:18px}
+.frow{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.frow label{font-size:12.5px;color:var(--dim)}
+.modal input,.modal select{padding:11px 13px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-size:14px;width:100%}
+.modal input:focus,.modal select:focus{outline:none;border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:9px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);color:var(--dim);font-size:13px;transition:background var(--t),color var(--t),border-color var(--t)}
+.seg button.on{background:var(--accent-soft);border-color:rgba(227,168,87,.4);color:var(--text)}
+.modal-act{display:flex;gap:10px;margin-top:6px}
+.modal-act .btn{flex:1}
+
+.toast{position:fixed;left:50%;bottom:40px;transform:translate(-50%,20px);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--text);padding:11px 18px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .25s var(--ease);z-index:80}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
-/* — Нижняя навигация (мобайл) — */
-.tabbar{
-  display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;
-  background:rgba(22,26,33,.92);backdrop-filter:blur(14px);
-  border-top:1px solid var(--line);
-  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
-  grid-template-columns:repeat(4,1fr);
-}
+.tabbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(22,26,33,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));grid-template-columns:repeat(4,1fr)}
 .tabbar a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--faint);transition:color var(--t)}
 .tabbar a svg{width:23px;height:23px}
 .tabbar a span{font-size:10.5px;font-weight:500}
 .tabbar a.active{color:var(--accent)}
 
-/* ============================================================
-   Адаптив
-   ============================================================ */
-@media (max-width:820px){
+@media (max-width:860px){
   .app.show{grid-template-columns:1fr}
   .side{display:none}
   .tabbar{display:grid}
-  .wrap{padding:30px 20px 120px}
-  .head h2{font-size:32px}
+  .wrap{padding:28px 18px 110px}
+  .head h2{font-size:31px}
   .strip{grid-template-columns:repeat(2,1fr)}
-  .ring-wrap{width:240px;height:240px}
-  .ring-time{font-size:44px}
+  .ring-wrap{width:230px;height:230px}
+  .ring-time{font-size:42px}
 }
-@media (prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-
-<!-- ───────────── Авторизация ───────────── -->
 <div class="auth" id="authView">
   <div class="auth-card">
-    <svg class="auth-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="24" cy="24" r="20"/>
-      <path d="M14 30 L21 22 L27 27 L34 17"/>
-      <path d="M34 23 V17 H28"/>
-    </svg>
-    <h1 class="serif">Вектор</h1>
+    <svg class="auth-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="20"/><path d="M14 30 L21 22 L27 27 L34 17"/><path d="M34 23 V17 H28"/></svg>
+    <h1>Вектор</h1>
     <p class="sub">Трекер развития, целей и привычек</p>
     <div class="field">
       <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="твоя почта">
@@ -314,385 +246,447 @@ svg{display:block}
     <div class="auth-note" id="authNote"></div>
   </div>
 </div>
-
-<!-- ───────────── Приложение ───────────── -->
 <div class="app" id="appView">
-  <!-- Сайдбар -->
   <aside class="side">
     <div class="brand">
       <svg class="logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="24" cy="24" r="20"/>
-        <path d="M14 30 L21 22 L27 27 L34 17"/>
-        <path d="M34 23 V17 H28"/>
+        <circle cx="24" cy="24" r="20"/><path d="M14 30 L21 22 L27 27 L34 17"/><path d="M34 23 V17 H28"/>
       </svg>
-      <span class="name"><b>Вектор</b></span>
+      <span class="name">Вектор</span>
     </div>
-    <nav class="nav" id="nav">
-      <div class="nav-ind" id="navInd"></div>
-      <!-- ссылки вставляет JS -->
-    </nav>
+    <nav class="nav" id="nav"><div class="nav-ind" id="navInd"></div></nav>
     <div class="side-foot">
       <div class="who" id="who"></div>
-      <button id="settingsBtn"><span class="ic" data-ic="settings"></span><span>Настройки</span></button>
+      <button id="seedBtn"><span class="ic" data-ic="info"></span><span>Загрузить примеры</span></button>
       <button id="logoutBtn"><span class="ic" data-ic="logout"></span><span>Выйти</span></button>
     </div>
   </aside>
 
-  <!-- Контент -->
   <main class="main">
     <div class="wrap">
-      <div class="banner" id="banner" style="display:none">
-        <span class="ic" data-ic="info"></span>
-        <span>Демо-режим. Подключи Supabase — впиши <code>SUPABASE_URL</code> и <code>SUPABASE_ANON_KEY</code> в коде.</span>
-      </div>
 
-      <!-- 1 · Таймер -->
+      <!-- ТАЙМЕР -->
       <section class="view" data-view="timer">
-        <div class="head">
-          <div class="eyebrow">Модуль 1</div>
-          <h2 class="serif">Таймер</h2>
-          <p>Выбери сферу развития и засеки время. Каждая сессия — вклад в траекторию.</p>
-        </div>
+        <div class="head"><div class="head-l"><div class="eyebrow">Модуль 1</div><h2 class="serif">Таймер</h2><p>Выбери сферу и засеки время. По сбросу сессия пишется в статистику.</p></div></div>
         <div class="timer-stage">
           <div class="ring-wrap">
-            <svg viewBox="0 0 280 280">
-              <circle class="ring-track" cx="140" cy="140" r="128"/>
-              <circle class="ring-prog idle" id="ringProg" cx="140" cy="140" r="128"/>
-            </svg>
-            <div class="ring-face">
-              <div class="ring-time mono" id="ringTime">00:00</div>
-              <div class="ring-state" id="ringState">готов</div>
-            </div>
+            <svg viewBox="0 0 270 270"><circle class="ring-track" cx="135" cy="135" r="123"/><circle class="ring-prog idle" id="ringProg" cx="135" cy="135" r="123"/></svg>
+            <div class="ring-face"><div class="ring-time mono" id="ringTime">00:00</div><div class="ring-state" id="ringState">готов</div></div>
           </div>
           <div class="cats" id="catChips"></div>
           <div class="timer-ctl">
             <button class="tbtn" id="resetBtn" title="Сброс"><span class="ic" data-ic="reset"></span></button>
             <button class="tbtn primary" id="playBtn" title="Старт"><span class="ic" data-ic="play"></span></button>
           </div>
-          <div class="timer-hint">Сохранение сессий в базу — Phase 1</div>
+          <div class="timer-hint" id="timerHint">Запусти — и время пойдёт в выбранную сферу</div>
         </div>
       </section>
 
-      <!-- 2 · Цели -->
+      <!-- ЦЕЛИ -->
       <section class="view" data-view="goals">
-        <div class="head">
-          <div class="eyebrow">Модуль 2</div>
-          <h2 class="serif">Цели</h2>
-          <p>Числовые, по вехам и бинарные. С дедлайном, прогрессом и прогнозом достижения.</p>
-        </div>
-        <div class="card empty">
-          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="11"/><circle cx="24" cy="24" r="4"/>
-          </svg>
-          <h3 class="serif">Целей пока нет</h3>
-          <p>Поставь первую — и здесь появится её траектория и прогноз срока.</p>
-          <button class="btn phase" data-phase="2"><span class="ic" data-ic="plus"></span>Новая цель</button>
-        </div>
+        <div class="head"><div class="head-l"><div class="eyebrow">Модуль 2</div><h2 class="serif">Цели</h2><p>Числовые, по вехам и бинарные. Меняй прогресс — пересчитается процент и прогноз срока.</p></div><button class="btn" onclick="openGoalModal()"><span class="ic" data-ic="plus"></span>Новая цель</button></div>
+        <div class="glist" id="goalList"></div>
       </section>
 
-      <!-- 3 · Привычки -->
+      <!-- ПРИВЫЧКИ -->
       <section class="view" data-view="habits">
-        <div class="head">
-          <div class="eyebrow">Модуль 3</div>
-          <h2 class="serif">Привычки</h2>
-          <p>Бинарные, количественные и временные. Серии, частота и напоминания в Telegram.</p>
-        </div>
-        <div class="card empty">
-          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 17 H30 a8 8 0 0 1 0 16 H17"/><path d="M21 11 L14 17 L21 23"/>
-            <path d="M34 31 H18 a8 8 0 0 1 0-16 H31" opacity=".35"/>
-          </svg>
-          <h3 class="serif">Привычек пока нет</h3>
-          <p>Добавь первую, чтобы начать серию и видеть процент выполнения.</p>
-          <button class="btn phase" data-phase="3"><span class="ic" data-ic="plus"></span>Новая привычка</button>
-        </div>
+        <div class="head"><div class="head-l"><div class="eyebrow">Модуль 3</div><h2 class="serif">Привычки</h2><p>Тапай день, чтобы отметить выполнение. Серия и процент за неделю обновятся сразу.</p></div><button class="btn" onclick="openHabitModal()"><span class="ic" data-ic="plus"></span>Новая привычка</button></div>
+        <div class="hlist" id="habitList"></div>
       </section>
 
-      <!-- 4 · Статистика -->
+      <!-- СТАТИСТИКА -->
       <section class="view" data-view="stats">
-        <div class="head">
-          <div class="eyebrow">Модуль 4</div>
-          <h2 class="serif">Статистика</h2>
-          <p>Скользящие средние, тренды роста и спада, серии и прогноз целей. С пометками факт / гипотеза.</p>
-        </div>
-        <div class="strip">
-          <div class="metric">
-            <div class="k"><span class="ic" data-ic="clock"></span>Время за неделю</div>
-            <div class="v">— <small>ч</small></div>
-            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
-          </div>
-          <div class="metric">
-            <div class="k"><span class="ic" data-ic="flame"></span>Текущая серия</div>
-            <div class="v">— <small>дн</small></div>
-            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
-          </div>
-          <div class="metric">
-            <div class="k"><span class="ic" data-ic="check"></span>Выполнение</div>
-            <div class="v">— <small>%</small></div>
-            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
-          </div>
-          <div class="metric">
-            <div class="k"><span class="ic" data-ic="target"></span>Целей активно</div>
-            <div class="v">—</div>
-            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
-          </div>
-        </div>
-        <div class="card empty">
-          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 38 H40"/><path d="M11 30 L20 22 L27 27 L38 14"/>
-            <path d="M38 21 V14 H31"/>
-          </svg>
-          <h3 class="serif">Графики появятся с данными</h3>
-          <p>Засекай время и отмечай привычки — движок начнёт строить тренды и инсайты.</p>
-        </div>
+        <div class="head"><div class="head-l"><div class="eyebrow">Модуль 4</div><h2 class="serif">Статистика</h2><p>Скользящие средние, тренды роста и спада, серии и прогноз. Числа — факт, причины — гипотезы.</p></div></div>
+        <div id="statsBody"></div>
       </section>
     </div>
   </main>
-
-  <!-- Нижняя навигация (мобайл) -->
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 
+<div class="modal-bg" id="modalBg"></div>
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   ВЕКТОР — Phase 0 · логика каркаса
-   ============================================================ */
-
-/* — 1. Конфигурация Supabase —
-   Впиши значения своего проекта. Пока тут плейсхолдеры —
-   приложение работает в демо-режиме (без входа). */
-const SUPABASE_URL      = 'https://zwqgptrcwhatyhkqzrda.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3cWdwdHJjd2hhdHloa3F6cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM5MzgsImV4cCI6MjA5NjYxOTkzOH0.fUq6IxvZjTc7qTMlWf2zF4Wrcl8uUCa9ExFXyvMZhtY';
-
-const IS_CONFIGURED = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
-let db = null;
-if (IS_CONFIGURED && window.supabase) {
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
-
-/* — 2. Иконки (единый stroke-стиль, currentColor) — */
-const ICONS = {
-  timer:   '<circle cx="12" cy="13" r="8"/><path d="M12 9 v4 l3 2"/><path d="M9 2 h6"/>',
-  target:  '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
-  habits:  '<path d="M7 8 H15 a4 4 0 0 1 0 8 H9"/><path d="M11 5 L7 8 L11 11"/>',
-  stats:   '<path d="M4 19 H20"/><path d="M6 15 L11 10 L14 13 L19 7"/><path d="M19 11 V7 H15"/>',
+/* ================= иконки ================= */
+const ICONS={
+  timer:'<circle cx="12" cy="13" r="8"/><path d="M12 9 v4 l3 2"/><path d="M9 2 h6"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
+  habits:'<path d="M7 8 H15 a4 4 0 0 1 0 8 H9"/><path d="M11 5 L7 8 L11 11"/>',
+  stats:'<path d="M4 19 H20"/><path d="M6 15 L11 10 L14 13 L19 7"/><path d="M19 11 V7 H15"/>',
   settings:'<path d="M6 5 h12 M6 12 h12 M6 19 h12"/><circle cx="9" cy="5" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="19" r="2"/>',
-  logout:  '<path d="M14 4 H6 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h8"/><path d="M16 8 l4 4 -4 4"/><path d="M20 12 H10"/>',
-  plus:    '<path d="M12 5 v14 M5 12 h14"/>',
-  play:    '<path d="M8 5 v14 l11-7 z" fill="currentColor" stroke="none"/>',
-  pause:   '<rect x="7" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
-  reset:   '<path d="M4 12 a8 8 0 1 0 2.3-5.6"/><path d="M4 4 v4 h4"/>',
-  info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11 v5 M12 8 h.01"/>',
-  clock:   '<circle cx="12" cy="12" r="8"/><path d="M12 8 v4 l3 2"/>',
-  flame:   '<path d="M12 3 c3 4 5 6 5 10 a5 5 0 0 1-10 0 c0-2 1-3 2-4 c0 2 1 3 3 3 c0-4-2-5 0-9 z"/>',
-  check:   '<path d="M4 12 l5 5 L20 6"/>',
-  flat:    '<path d="M5 12 h14"/>',
-  up:      '<path d="M5 17 L12 10 L16 14 L20 8"/><path d="M20 12 V8 H16"/>',
-  down:    '<path d="M5 7 L12 14 L16 10 L20 16"/><path d="M20 12 V16 H16"/>',
+  logout:'<path d="M14 4 H6 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h8"/><path d="M16 8 l4 4 -4 4"/><path d="M20 12 H10"/>',
+  plus:'<path d="M12 5 v14 M5 12 h14"/>',
+  play:'<path d="M8 5 v14 l11-7 z" fill="currentColor" stroke="none"/>',
+  pause:'<rect x="7" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
+  reset:'<path d="M4 12 a8 8 0 1 0 2.3-5.6"/><path d="M4 4 v4 h4"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11 v5 M12 8 h.01"/>',
+  clock:'<circle cx="12" cy="12" r="8"/><path d="M12 8 v4 l3 2"/>',
+  flame:'<path d="M12 3 c3 4 5 6 5 10 a5 5 0 0 1-10 0 c0-2 1-3 2-4 c0 2 1 3 3 3 c0-4-2-5 0-9 z"/>',
+  check:'<path d="M4 12 l5 5 L20 6"/>',
+  flat:'<path d="M5 12 h14"/>',
+  up:'<path d="M5 17 L12 10 L16 14 L20 8"/><path d="M20 12 V8 H16"/>',
+  down:'<path d="M5 7 L12 14 L16 10 L20 16"/><path d="M20 12 V16 H16"/>',
+  fc:'<circle cx="12" cy="12" r="9"/><path d="M12 7 v5 l3 2"/>',
 };
-function icon(name, cls){
-  const body = ICONS[name] || '';
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="${cls||''}">${body}</svg>`;
-}
-// подставить иконки в плейсхолдеры <span class="ic" data-ic="...">
-function hydrateIcons(root){
-  (root||document).querySelectorAll('.ic[data-ic]').forEach(el=>{
-    el.innerHTML = icon(el.dataset.ic);
-    el.style.display='inline-flex'; el.firstChild.style.width='1em'; el.firstChild.style.height='1em';
-  });
-}
+function icon(n,c){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="${c||''}">${ICONS[n]||''}</svg>`;}
+function hydrate(root){(root||document).querySelectorAll('.ic[data-ic]').forEach(el=>{el.innerHTML=icon(el.dataset.ic);el.style.display='inline-flex';if(el.firstChild){el.firstChild.style.width='1em';el.firstChild.style.height='1em';}});}
 
-/* — 3. Навигация и роутинг — */
-const ROUTES = [
-  {id:'timer',  label:'Таймер',     icon:'timer'},
-  {id:'goals',  label:'Цели',       icon:'target'},
-  {id:'habits', label:'Привычки',   icon:'habits'},
-  {id:'stats',  label:'Статистика', icon:'stats'},
+/* ================= утилиты дат / ГПСЧ ================= */
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const DAY=864e5;
+function dAgo(n){return new Date(TODAY.getTime()-n*DAY);}
+function iso(d){return d.toISOString().slice(0,10);}
+function ruDate(d){return d.toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'});}
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let rnd=mulberry32(20260610);
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+/* ================= конфигурация Supabase ================= */
+const SUPABASE_URL='https://zwqgptrcwhatyhkqzrda.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3cWdwdHJjd2hhdHloa3F6cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM5MzgsImV4cCI6MjA5NjYxOTkzOH0.fUq6IxvZjTc7qTMlWf2zF4Wrcl8uUCa9ExFXyvMZhtY';
+let db=null; if(window.supabase) db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let UID=null;
+
+/* ================= состояние (из базы) ================= */
+let CATS=[];
+let SESSIONS=[];      // {date, catId, minutes}
+let HABITS=[];        // {id,title,catId,freq}
+let LOGS=new Set();   // "habitId|iso"
+let GOALS=[];         // {id,title,catId,type,target,current,unit,status,createdAgo,milestones}
+const catById=id=>CATS.find(c=>c.id===id)||{name:'—',color:'#888'};
+function scheduled(h,d){const wd=d.getDay();return h.freq==='weekdays'?(wd!==0&&wd!==6):true;}
+const DEF_CATS=[
+  {name:'Здоровье',color:'#5FB98C'},{name:'Карьера',color:'#E3A857'},{name:'Обучение',color:'#7B9FD0'},
+  {name:'Финансы',color:'#C9A06A'},{name:'Отношения',color:'#D98BA5'},{name:'Творчество',color:'#9B8BD9'},
 ];
 
-function buildNav(){
-  const nav = document.getElementById('nav');
-  const tab = document.getElementById('tabbar');
+async function loadAll(){
+  if(!db) return;
+  let r=await db.from('categories').select('*').order('sort_order'); let cats=r.data;
+  if(!cats||!cats.length){
+    await db.from('categories').insert(DEF_CATS.map((c,i)=>({name:c.name,color:c.color,user_id:UID,sort_order:i})));
+    cats=(await db.from('categories').select('*').order('sort_order')).data;
+  }
+  CATS=(cats||[]).map(c=>({id:c.id,name:c.name,color:c.color||'#888'}));
+
+  const goals=(await db.from('goals').select('*').order('created_at',{ascending:false})).data||[];
+  const ms=(await db.from('goal_milestones').select('*').order('sort_order')).data||[];
+  GOALS=goals.map(g=>({id:g.id,title:g.title,catId:g.category_id,type:g.type,target:g.target_value,current:Number(g.current_value)||0,unit:g.unit,status:g.status,createdAgo:Math.max(1,Math.round((TODAY-new Date(g.created_at))/DAY)),milestones:ms.filter(m=>m.goal_id===g.id).map(m=>({id:m.id,t:m.title,done:m.done}))}));
+
+  const habits=(await db.from('habits').select('*').order('created_at',{ascending:false})).data||[];
+  HABITS=habits.map(h=>({id:h.id,title:h.title,catId:h.category_id,freq:h.frequency_type==='weekdays'?'weekdays':'daily'}));
+
+  const logs=(await db.from('habit_logs').select('habit_id,log_date,done').gte('log_date',iso(dAgo(95)))).data||[];
+  LOGS=new Set(); logs.forEach(l=>{if(l.done)LOGS.add(l.habit_id+'|'+l.log_date);});
+
+  const sess=(await db.from('timer_sessions').select('category_id,started_at,duration_seconds').gte('started_at',dAgo(62).toISOString())).data||[];
+  SESSIONS=sess.map(x=>({date:iso(new Date(x.started_at)),catId:x.category_id,minutes:Math.round((x.duration_seconds||0)/60)}));
+
+  renderCats();renderGoals();renderHabits();
+  if(document.querySelector('.view[data-view="stats"].active'))renderStats();
+}
+
+async function seedSampleData(){
+  if(!db){toast('Нет подключения');return;}
+  if(GOALS.length||HABITS.length){toast('Данные уже есть — примеры не нужны');return;}
+  toast('Заполняю примерами…');
+  const cid=name=>{const c=CATS.find(x=>x.name===name);return c?c.id:(CATS[0]&&CATS[0].id);};
+  await db.from('goals').insert([
+    {user_id:UID,title:'Прочитать 12 книг за год',category_id:cid('Обучение'),type:'numeric',target_value:12,current_value:7,unit:'кн',status:'active'},
+    {user_id:UID,title:'Накопить подушку $5000',category_id:cid('Финансы'),type:'numeric',target_value:5000,current_value:3200,unit:'$',status:'active'},
+    {user_id:UID,title:'Выучить 1000 слов',category_id:cid('Обучение'),type:'numeric',target_value:1000,current_value:920,unit:'сл',status:'active'},
+    {user_id:UID,title:'Запустить сайд-проект',category_id:cid('Карьера'),type:'binary',status:'active'},
+  ]);
+  const mg=(await db.from('goals').insert({user_id:UID,title:'Подготовиться к полумарафону',category_id:cid('Здоровье'),type:'milestone',status:'active'}).select().single()).data;
+  if(mg)await db.from('goal_milestones').insert([
+    {goal_id:mg.id,user_id:UID,title:'Пробежать 5 км',done:true,sort_order:0},
+    {goal_id:mg.id,user_id:UID,title:'Пробежать 10 км',done:true,sort_order:1},
+    {goal_id:mg.id,user_id:UID,title:'Пробежать 15 км',done:false,sort_order:2},
+    {goal_id:mg.id,user_id:UID,title:'Пробежать 21 км',done:false,sort_order:3},
+  ]);
+  const hb=(await db.from('habits').insert([
+    {user_id:UID,title:'Утренняя зарядка',category_id:cid('Здоровье'),type:'binary',frequency_type:'daily'},
+    {user_id:UID,title:'Чтение 20 страниц',category_id:cid('Обучение'),type:'binary',frequency_type:'daily'},
+    {user_id:UID,title:'Английский',category_id:cid('Обучение'),type:'binary',frequency_type:'weekdays'},
+    {user_id:UID,title:'Без сахара',category_id:cid('Здоровье'),type:'binary',frequency_type:'daily'},
+  ]).select()).data||[];
+  const logRows=[],sessRows=[];
+  const pat={0:i=>i<10?0.3:0.92,1:i=>clamp(0.5+(35-i)/35*0.45,0,0.97),2:()=>0.85,3:()=>0.96};
+  for(let i=34;i>=0;i--){const d=dAgo(i);
+    hb.forEach((h,idx)=>{const wd=d.getDay();if(h.frequency_type==='weekdays'&&(wd===0||wd===6))return;
+      if(rnd()<pat[idx](i))logRows.push({habit_id:h.id,user_id:UID,log_date:iso(d),done:true,value:1,source:'web'});});
+    const learn=clamp(Math.round(18+(34-i)*0.8+(rnd()*16-8)),5,120);
+    sessRows.push({user_id:UID,category_id:cid('Обучение'),started_at:d.toISOString(),duration_seconds:learn*60,source:'web'});
+    let hh=42+(rnd()*14-7);if(i<10)hh-=(10-i)*2.6;hh=clamp(Math.round(hh),0,120);
+    if(hh>0)sessRows.push({user_id:UID,category_id:cid('Здоровье'),started_at:d.toISOString(),duration_seconds:hh*60,source:'web'});
+    const wd=d.getDay();if(wd!==0&&wd!==6)sessRows.push({user_id:UID,category_id:cid('Карьера'),started_at:d.toISOString(),duration_seconds:clamp(Math.round(50+(rnd()*30-15)),10,150)*60,source:'web'});
+  }
+  if(logRows.length)await db.from('habit_logs').insert(logRows);
+  if(sessRows.length)await db.from('timer_sessions').insert(sessRows);
+  await loadAll();toast('Примеры загружены');
+}
+
+/* ================= навигация ================= */
+const ROUTES=[{id:'timer',label:'Таймер',icon:'timer'},{id:'goals',label:'Цели',icon:'target'},{id:'habits',label:'Привычки',icon:'habits'},{id:'stats',label:'Статистика',icon:'stats'}];
+function go(id){if(!ROUTES.some(r=>r.id===id))id='timer';
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===id));
+  document.querySelectorAll('[data-route]').forEach(a=>a.classList.toggle('active',a.dataset.route===id));
+  const idx=ROUTES.findIndex(r=>r.id===id);const ind=document.getElementById('navInd');
+  ind.style.opacity=1;ind.style.transform=`translateY(${idx*44}px)`;
+  document.querySelector('.main').scrollTop=0;
+  if(id==='stats')renderStats();
+}
+function buildNav(){const nav=document.getElementById('nav'),tab=document.getElementById('tabbar');
   ROUTES.forEach(r=>{
-    const a = document.createElement('a');
-    a.href = '#'+r.id; a.dataset.route = r.id;
-    a.innerHTML = icon(r.icon) + `<span class="lbl">${r.label}</span>`;
-    nav.appendChild(a);
-
-    const t = document.createElement('a');
-    t.href = '#'+r.id; t.dataset.route = r.id;
-    t.innerHTML = icon(r.icon) + `<span>${r.label}</span>`;
-    tab.appendChild(t);
+    const a=document.createElement('a');a.href='#'+r.id;a.dataset.route=r.id;a.innerHTML=icon(r.icon)+`<span>${r.label}</span>`;a.addEventListener('click',e=>{e.preventDefault();go(r.id);});nav.appendChild(a);
+    const t=document.createElement('a');t.href='#'+r.id;t.dataset.route=r.id;t.innerHTML=icon(r.icon)+`<span>${r.label}</span>`;t.addEventListener('click',e=>{e.preventDefault();go(r.id);});tab.appendChild(t);
   });
 }
 
-function moveIndicator(idx){
-  const ind = document.getElementById('navInd');
-  if(idx < 0){ ind.style.opacity = 0; return; }
-  ind.style.opacity = 1;
-  ind.style.transform = `translateY(${idx*44}px)`;
+/* ================= тост ================= */
+let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2600);}
+
+/* ================= таймер ================= */
+const CYCLE=3600,RR=123,CIRC=2*Math.PI*RR;
+let elapsed=0,running=false,tick=null,selCat=null;
+function renderCats(){const box=document.getElementById('catChips');box.innerHTML='';
+  CATS.forEach((c,i)=>{const b=document.createElement('button');b.className='chip'+(i===selCat?' sel':'');
+    b.innerHTML=`<span class="dot" style="background:${c.color}"></span>${c.name}`;
+    b.onclick=()=>{selCat=i;renderCats();document.documentElement.style.setProperty('--accent',c.color);};box.appendChild(b);});}
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,mm=String(m).padStart(2,'0'),ss=String(x).padStart(2,'0');return h>0?`${h}:${mm}:${ss}`:`${mm}:${ss}`;}
+function paintRing(){const p=document.getElementById('ringProg'),f=(elapsed%CYCLE)/CYCLE;p.setAttribute('stroke-dasharray',CIRC);p.setAttribute('stroke-dashoffset',CIRC*(1-f));document.getElementById('ringTime').textContent=fmt(elapsed);}
+function runUI(on){document.getElementById('playBtn').innerHTML=icon(on?'pause':'play');const st=document.getElementById('ringState');st.textContent=on?'идёт':(elapsed?'пауза':'готов');st.classList.toggle('run',on);document.getElementById('ringProg').classList.toggle('idle',!on);}
+function toggleTimer(){running=!running;if(running){if(selCat===null){selCat=0;renderCats();document.documentElement.style.setProperty('--accent',CATS[0].color);}tick=setInterval(()=>{elapsed++;paintRing();},1000);}else clearInterval(tick);runUI(running);}
+async function resetTimer(){clearInterval(tick);
+  if(elapsed>=5&&selCat!==null&&CATS[selCat]){const c=CATS[selCat];const secs=elapsed;const mins=Math.max(1,Math.round(secs/60));
+    SESSIONS.push({date:iso(TODAY),catId:c.id,minutes:mins});toast(`Сессия записана: ${mins} мин · ${c.name}`);
+    if(db&&UID){const started=new Date(Date.now()-secs*1000);
+      db.from('timer_sessions').insert({user_id:UID,category_id:c.id,started_at:started.toISOString(),ended_at:new Date().toISOString(),duration_seconds:secs,source:'web'}).then(({error})=>{if(error)toast('Не сохранилось: '+error.message);});}}
+  running=false;elapsed=0;document.getElementById('ringProg').classList.add('idle');paintRing();runUI(false);}
+
+/* ================= цели ================= */
+function goalProgress(g){
+  if(g.type==='numeric')return clamp(g.current/g.target,0,1);
+  if(g.type==='milestone'){const d=g.milestones.filter(m=>m.done).length;return d/g.milestones.length;}
+  return g.status==='done'?1:0;
 }
-
-function setRoute(id){
-  if(!ROUTES.some(r=>r.id===id)) id = 'timer';
-  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===id));
-  document.querySelectorAll('[data-route]').forEach(a=>a.classList.toggle('active', a.dataset.route===id));
-  moveIndicator(ROUTES.findIndex(r=>r.id===id));
-  document.querySelector('.main').scrollTop = 0;
-}
-window.addEventListener('hashchange', ()=> setRoute(location.hash.slice(1)));
-
-/* — 4. Тост — */
-let toastT;
-function toast(msg){
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('show'), 2400);
-}
-
-/* — 5. Таймер (рабочий секундомер + кольцо) — */
-const CYCLE = 60 * 60;            // полный оборот кольца = 1 час
-const R = 128, CIRC = 2 * Math.PI * R;
-let elapsed = 0, running = false, tick = null, selectedCat = null;
-
-const DEMO_CATS = [
-  {name:'Здоровье',  color:'#5FB98C'},
-  {name:'Карьера',   color:'#E3A857'},
-  {name:'Обучение',  color:'#7B9FD0'},
-  {name:'Финансы',   color:'#C9A06A'},
-  {name:'Отношения', color:'#D98BA5'},
-  {name:'Творчество',color:'#9B8BD9'},
-];
-
-function renderCats(){
-  const box = document.getElementById('catChips');
-  box.innerHTML = '';
-  DEMO_CATS.forEach((c,i)=>{
-    const b = document.createElement('button');
-    b.className = 'chip' + (i===selectedCat?' sel':'');
-    b.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.name}`;
-    b.onclick = ()=>{ selectedCat = i; renderCats();
-      document.documentElement.style.setProperty('--accent', c.color); };
-    box.appendChild(b);
+function forecast(g){if(g.type!=='numeric'||g.current<=0||g.current>=g.target)return null;const vel=g.current/g.createdAgo;if(vel<=0)return null;const left=Math.ceil((g.target-g.current)/vel);return{left,date:dAgo(-left)};}
+function renderGoals(){const L=document.getElementById('goalList');L.innerHTML='';
+  if(!GOALS.length){L.innerHTML=`<div class="empty"><svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="11"/><circle cx="24" cy="24" r="4"/></svg><h3 class="serif">Целей пока нет</h3><p>Поставь первую — и здесь появится её траектория и прогноз срока.</p><button class="btn" onclick="openGoalModal()"><span class="ic" data-ic="plus"></span>Новая цель</button></div>`;hydrate(L);return;}
+  GOALS.forEach(g=>{const c=catById(g.catId),pr=goalProgress(g),pct=Math.round(pr*100);
+    const el=document.createElement('div');el.className='goal';
+    let body=`<div class="goal-top"><div class="goal-title"><span class="dot" style="background:${c.color}"></span>${g.title}</div>
+      <span class="pill ${pct>=100?'done':g.status}">${pct>=100?'готово':g.status==='active'?'в работе':g.status}</span></div>`;
+    if(g.type==='numeric'){
+      body+=`<div class="bar"><i style="width:${pct}%;background:${c.color}"></i></div>
+        <div class="goal-meta"><span><span class="mono">${g.current}</span> / ${g.target} ${g.unit||''}</span><span class="mono">${pct}%</span></div>`;
+      const f=forecast(g);
+      if(f)body+=`<div class="goal-fc">${icon('fc')}<span>При текущем темпе — ${ruDate(f.date)} (~${f.left} дн). <span class="tag hyp">прогноз</span></span></div>`;
+      body+=`<div class="goal-ctl"><div class="streak" style="min-width:0;color:var(--dim)">Прогресс</div>
+        <button class="sbtn" onclick="bumpGoal('${g.id}',-1)">−</button><button class="sbtn" onclick="bumpGoal('${g.id}',1)">+</button></div>`;
+    } else if(g.type==='milestone'){
+      body+=`<div class="bar"><i style="width:${pct}%;background:${c.color}"></i></div>
+        <div class="goal-meta"><span><span class="mono">${g.milestones.filter(m=>m.done).length}</span> / ${g.milestones.length} вех</span><span class="mono">${pct}%</span></div>
+        <div class="ms">`+g.milestones.map((m,i)=>`<div class="ms-row ${m.done?'on':''}" onclick="toggleMs('${g.id}',${i})"><span class="box">${m.done?icon('check'):''}</span>${m.t}</div>`).join('')+`</div>`;
+    } else {
+      body+=`<div class="goal-meta" style="margin-top:12px"><span>Бинарная цель</span></div>
+        <div class="goal-ctl"><button class="btn ghost" onclick="toggleBinary('${g.id}')">${g.status==='done'?'Вернуть в работу':'Отметить выполненной'}</button></div>`;
+    }
+    el.innerHTML=body;L.appendChild(el);
   });
 }
+function bumpGoal(id,d){const g=GOALS.find(x=>x.id===id);if(!g)return;const step=g.target>=1000?50:1;g.current=clamp(g.current+d*step,0,g.target);if(g.current>=g.target)g.status='done';else if(g.status==='done')g.status='active';renderGoals();if(db)db.from('goals').update({current_value:g.current,status:g.status,completed_at:g.status==='done'?new Date().toISOString():null}).eq('id',id).then(({error})=>{if(error)toast('Не сохранилось');});}
+function toggleMs(id,i){const g=GOALS.find(x=>x.id===id);const m=g.milestones[i];m.done=!m.done;renderGoals();if(db&&m.id)db.from('goal_milestones').update({done:m.done,done_at:m.done?new Date().toISOString():null}).eq('id',m.id).then(({error})=>{if(error)toast('Не сохранилось');});}
+function toggleBinary(id){const g=GOALS.find(x=>x.id===id);g.status=g.status==='done'?'active':'done';renderGoals();if(db)db.from('goals').update({status:g.status,completed_at:g.status==='done'?new Date().toISOString():null}).eq('id',id).then(({error})=>{if(error)toast('Не сохранилось');});}
 
-function fmt(s){
-  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
-  const mm = String(m).padStart(2,'0'), ss = String(sec).padStart(2,'0');
-  return h>0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-function paintRing(){
-  const prog = document.getElementById('ringProg');
-  const frac = (elapsed % CYCLE) / CYCLE;
-  prog.setAttribute('stroke-dasharray', CIRC);
-  prog.setAttribute('stroke-dashoffset', CIRC * (1 - frac));
-  document.getElementById('ringTime').textContent = fmt(elapsed);
-}
-function setRunUI(on){
-  const btn = document.getElementById('playBtn');
-  const st = document.getElementById('ringState');
-  const prog = document.getElementById('ringProg');
-  btn.innerHTML = icon(on ? 'pause' : 'play');
-  st.textContent = on ? 'идёт' : (elapsed ? 'пауза' : 'готов');
-  st.classList.toggle('run', on);
-  prog.classList.toggle('idle', !on);
-}
-function toggleTimer(){
-  running = !running;
-  if(running){
-    if(selectedCat===null){ selectedCat=0; renderCats();
-      document.documentElement.style.setProperty('--accent', DEMO_CATS[0].color); }
-    tick = setInterval(()=>{ elapsed++; paintRing(); }, 1000);
-  } else { clearInterval(tick); }
-  setRunUI(running);
-}
-function resetTimer(){
-  clearInterval(tick); running=false; elapsed=0;
-  document.getElementById('ringProg').classList.add('idle');
-  paintRing(); setRunUI(false);
-}
-
-/* — 6. Авторизация / сессия — */
-function showAuth(){ document.getElementById('authView').classList.add('show'); document.getElementById('appView').classList.remove('show'); }
-function showApp(email){
-  document.getElementById('authView').classList.remove('show');
-  document.getElementById('appView').classList.add('show');
-  if(email) document.getElementById('who').textContent = email;
-  setRoute(location.hash.slice(1) || 'timer');
-}
-
-async function sendMagicLink(){
-  const email = document.getElementById('email').value.trim();
-  const note = document.getElementById('authNote');
-  note.className = 'auth-note';
-  if(!/.+@.+\..+/.test(email)){ note.textContent='Введи корректную почту'; note.classList.add('err'); return; }
-  if(!db){ note.textContent='Supabase не подключён (демо-режим)'; note.classList.add('err'); return; }
-  const btn = document.getElementById('loginBtn');
-  btn.disabled = true; btn.textContent = 'Отправляю…';
-  try{
-    const { error } = await db.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
-    if(error) throw error;
-    note.textContent = 'Ссылка отправлена. Проверь почту.'; note.classList.add('ok');
-  }catch(e){
-    note.textContent = 'Не отправилось: ' + (e.message || 'ошибка'); note.classList.add('err');
-  }finally{
-    btn.disabled = false; btn.textContent = 'Прислать ссылку для входа';
-  }
-}
-
-async function logout(){
-  if(db) await db.auth.signOut();
-  location.hash = ''; showAuth();
-}
-
-/* — 7. Telegram Mini App (graceful) — */
-function initTelegram(){
-  const tg = window.Telegram && window.Telegram.WebApp;
-  if(!tg || !tg.initData) return;          // не внутри Telegram — выходим
-  try{ tg.ready(); tg.expand(); }catch(e){}
-  // Привязка initData → сессия Supabase делается в Phase 5b (через Edge Function).
-}
-
-/* — 8. Старт — */
-async function boot(){
-  buildNav();
-  hydrateIcons();
-  renderCats();
-  resetTimer();
-  initTelegram();
-
-  document.getElementById('loginBtn').onclick = sendMagicLink;
-  document.getElementById('email').addEventListener('keydown', e=>{ if(e.key==='Enter') sendMagicLink(); });
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('settingsBtn').onclick = ()=> toast('Настройки — позже');
-  document.getElementById('playBtn').onclick = toggleTimer;
-  document.getElementById('resetBtn').onclick = resetTimer;
-  document.querySelectorAll('.btn.phase').forEach(b=>{
-    b.onclick = ()=> toast('Появится в Phase ' + b.dataset.phase);
-  });
-
-  if(!IS_CONFIGURED){
-    // демо-режим: показываем приложение сразу, без входа
-    document.getElementById('banner').style.display = 'flex';
-    hydrateIcons(document.getElementById('banner'));
-    showApp('демо-режим');
-    return;
-  }
-
-  // реальный режим: проверяем сессию
-  const { data } = await db.auth.getSession();
-  if(data && data.session){ showApp(data.session.user.email); }
-  else { showAuth(); }
-
-  db.auth.onAuthStateChange((_e, session)=>{
-    if(session){ showApp(session.user.email); }
-    else { showAuth(); }
+/* ================= привычки ================= */
+function streak(h){let cur=0;for(let i=0;i<90;i++){const d=dAgo(i);if(!scheduled(h,d))continue;if(LOGS.has(h.id+'|'+iso(d)))cur++;else break;}
+  let mx=0,run=0;for(let i=89;i>=0;i--){const d=dAgo(i);if(!scheduled(h,d))continue;if(LOGS.has(h.id+'|'+iso(d))){run++;mx=Math.max(mx,run);}else run=0;}
+  return{cur,mx};}
+function weekPct(h){let s=0,done=0;for(let i=0;i<7;i++){const d=dAgo(i);if(!scheduled(h,d))continue;s++;if(LOGS.has(h.id+'|'+iso(d)))done++;}return s?Math.round(done/s*100):0;}
+function renderHabits(){const L=document.getElementById('habitList');L.innerHTML='';
+  if(!HABITS.length){L.innerHTML=`<div class="empty"><svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17 H30 a8 8 0 0 1 0 16 H17"/><path d="M21 11 L14 17 L21 23"/></svg><h3 class="serif">Привычек пока нет</h3><p>Добавь первую, чтобы начать серию и видеть процент выполнения.</p><button class="btn" onclick="openHabitModal()"><span class="ic" data-ic="plus"></span>Новая привычка</button></div>`;hydrate(L);return;}
+  HABITS.forEach(h=>{const c=catById(h.catId),s=streak(h);
+    let days='';for(let i=6;i>=0;i--){const d=dAgo(i);const on=LOGS.has(h.id+'|'+iso(d));const isToday=i===0;const sch=scheduled(h,d);
+      days+=`<div class="day ${on?'done':''} ${isToday?'today':''} ${isToday&&sch?'tap':''}" ${isToday&&sch?`onclick="toggleHabit('${h.id}')"`:''} style="${!sch?'opacity:.35':''}"><span class="dw">${WD[d.getDay()]}</span><span class="dn">${d.getDate()}</span></div>`;}
+    const el=document.createElement('div');el.className='habit';
+    el.innerHTML=`<div class="habit-main"><div class="habit-name"><span class="dot" style="background:${c.color}"></span>${h.title}</div>
+      <div class="habit-freq">${h.freq==='weekdays'?'По будням':'Ежедневно'} · ${c.name}</div></div>
+      <div class="streak">${icon('flame')}<span class="mono">${s.cur}</span></div>
+      <div class="days">${days}</div>
+      <div class="hpct">${weekPct(h)}%</div>`;
+    L.appendChild(el);
   });
 }
-boot();
+function toggleHabit(id){const k=id+'|'+iso(TODAY);const on=!LOGS.has(k);if(on)LOGS.add(k);else LOGS.delete(k);renderHabits();if(db&&UID){if(on){db.from('habit_logs').upsert({habit_id:id,user_id:UID,log_date:iso(TODAY),done:true,value:1,source:'web'},{onConflict:'habit_id,log_date'}).then(({error})=>{if(error)toast('Не сохранилось');});}else{db.from('habit_logs').delete().eq('habit_id',id).eq('log_date',iso(TODAY)).then(({error})=>{if(error)toast('Не сохранилось');});}}}
+
+/* ================= статистика ================= */
+function dailyMin(){const m={};for(let i=0;i<60;i++)m[iso(dAgo(i))]=0;SESSIONS.forEach(s=>{if(m[s.date]!==undefined)m[s.date]+=s.minutes;});return m;}
+function sumRange(dm,a,b){let s=0;for(let i=a;i<b;i++)s+=dm[iso(dAgo(i))]||0;return s;}
+function trendBlock(cur,prev){if(prev===0)return{cls:'flat',ic:'flat',txt:'нет базы'};const d=Math.round((cur-prev)/prev*100);if(d>4)return{cls:'up',ic:'up',txt:'+'+d+'% к прошлой'};if(d<-4)return{cls:'down',ic:'down',txt:d+'% к прошлой'};return{cls:'flat',ic:'flat',txt:'стабильно'};}
+function ma(series,w){return series.map((_,i)=>{const a=Math.max(0,i-w+1);const sl=series.slice(a,i+1);return sl.reduce((x,y)=>x+y,0)/sl.length;});}
+
+function areaChart(daily,ma7){
+  const W=640,H=170,pad=8,n=daily.length;const max=Math.max(...daily,...ma7,1);
+  const x=i=>pad+i*(W-2*pad)/(n-1);const y=v=>H-pad-(v/max)*(H-2*pad);
+  let area=`M ${x(0)} ${H-pad}`;daily.forEach((v,i)=>area+=` L ${x(i).toFixed(1)} ${y(v).toFixed(1)}`);area+=` L ${x(n-1)} ${H-pad} Z`;
+  let line='';ma7.forEach((v,i)=>line+=(i?' L ':'M ')+x(i).toFixed(1)+' '+y(v).toFixed(1));
+  let grid='';for(let g=0;g<=2;g++){const yy=pad+g*(H-2*pad)/2;grid+=`<line x1="${pad}" y1="${yy}" x2="${W-pad}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`;}
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" preserveAspectRatio="none">
+    ${grid}
+    <path d="${area}" fill="var(--accent-soft)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function renderStats(){const body=document.getElementById('statsBody');const dm=dailyMin();
+  // метрики
+  const wk=Math.round(sumRange(dm,0,7)/60*10)/10,pwk=Math.round(sumRange(dm,7,14)/60*10)/10;
+  const wkTr=trendBlock(sumRange(dm,0,7),sumRange(dm,7,14));
+  // лучшая серия
+  let best={cur:0,mx:0,name:'—'};HABITS.forEach(h=>{const s=streak(h);if(s.cur>best.cur)best={...s,name:h.title};});
+  // выполнение за неделю (среднее по привычкам)
+  let pc=0,pcN=0;HABITS.forEach(h=>{pc+=weekPct(h);pcN++;});pc=Math.round(pc/pcN);
+  let pcPrev=0;HABITS.forEach(h=>{let s=0,d=0;for(let i=7;i<14;i++){const dd=dAgo(i);if(!scheduled(h,dd))continue;s++;if(LOGS.has(h.id+'|'+iso(dd)))d++;}pcPrev+=s?d/s*100:0;});pcPrev=Math.round(pcPrev/pcN);
+  const pcTr=trendBlock(pc,pcPrev);
+  const activeGoals=GOALS.filter(g=>g.status==='active'&&goalProgress(g)<1).length;
+
+  let html=`<div class="strip">
+    <div class="metric"><div class="k">${icon('clock')}Время за неделю</div><div class="v">${wk}<small>ч</small></div><div class="trend ${wkTr.cls}">${icon(wkTr.ic)}${wkTr.txt}</div></div>
+    <div class="metric"><div class="k">${icon('flame')}Лучшая серия</div><div class="v">${best.cur}<small>дн</small></div><div class="trend flat">${icon('flat')}${best.name}</div></div>
+    <div class="metric"><div class="k">${icon('check')}Выполнение</div><div class="v">${pc}<small>%</small></div><div class="trend ${pcTr.cls}">${icon(pcTr.ic)}${pcTr.txt}</div></div>
+    <div class="metric"><div class="k">${icon('target')}Целей активно</div><div class="v">${activeGoals}</div><div class="trend flat">${icon('flat')}из ${GOALS.length}</div></div>
+  </div>`;
+
+  // график: минуты по дням (30) + MA7
+  const days30=[];for(let i=29;i>=0;i--)days30.push(dm[iso(dAgo(i))]||0);
+  const ma7=ma(days30,7);
+  html+=`<div class="chart-card"><h4>${icon('stats')}Время в день, 30 дней</h4><div class="cap">Заливка — факт по дням, линия — скользящее среднее за 7 дней (сглаживает шум).</div>
+    ${areaChart(days30,ma7)}
+    <div class="legend"><span><i style="background:var(--accent-soft)"></i>минуты/день</span><span><i style="background:var(--accent)"></i>среднее 7д</span></div></div>`;
+
+  // распределение по категориям (30д)
+  const byCat={};CATS.forEach(c=>byCat[c.id]=0);SESSIONS.forEach(s=>{const age=Math.round((TODAY-new Date(s.date))/DAY);if(age<30&&byCat[s.catId]!==undefined)byCat[s.catId]+=s.minutes;});
+  const maxCat=Math.max(...Object.values(byCat),1);
+  let bars='';CATS.slice().sort((a,b)=>byCat[b.id]-byCat[a.id]).forEach(c=>{const mins=byCat[c.id];const h=Math.floor(mins/60),m=mins%60;
+    bars+=`<div class="cat-bar"><span class="nm"><span class="dot" style="background:${c.color}"></span>${c.name}</span><span class="track"><i style="width:${Math.round(mins/maxCat*100)}%;background:${c.color}"></i></span><span class="val">${h}ч ${m}м</span></div>`;});
+  html+=`<div class="chart-card"><h4>${icon('clock')}По сферам, 30 дней</h4><div class="cap">Куда реально уходит время.</div><div class="cat-bars">${bars}</div></div>`;
+
+  // тепловая карта выполнения привычек (12 недель)
+  const weeks=12;let cols='';
+  for(let w=weeks-1;w>=0;w--){let col='';for(let d=6;d>=0;d--){const dt=dAgo(w*7+d);if(dt>TODAY){col+=`<div class="heat-cell" style="background:transparent"></div>`;continue;}
+    let s=0,done=0;HABITS.forEach(h=>{if(!scheduled(h,dt))return;s++;if(LOGS.has(h.id+'|'+iso(dt)))done++;});const f=s?done/s:0;
+    const bg=f===0?'var(--surface-2)':`color-mix(in srgb, var(--accent) ${Math.round(20+f*80)}%, var(--surface-2))`;
+    col+=`<div class="heat-cell" style="background:${bg}" title="${iso(dt)}: ${Math.round(f*100)}%"></div>`;}
+    cols+=`<div class="heat-col">${col}</div>`;}
+  html+=`<div class="chart-card"><h4>${icon('habits')}Постоянство привычек, 12 недель</h4><div class="cap">Каждая клетка — день; ярче = больше привычек выполнено.</div><div class="heat">${cols}</div></div>`;
+
+  // инсайты
+  html+=`<div class="chart-card" style="border:none;background:transparent;padding:0">${buildInsights(dm)}</div>`;
+
+  body.innerHTML=html;hydrate(body);
+}
+
+function buildInsights(dm){
+  const out=[];
+  // 1. спад по категории (Здоровье): сравнить 7д среднее с 30д
+  CATS.forEach(c=>{let l7=0,l30=0;SESSIONS.forEach(s=>{if(s.catId!==c.id)return;const age=Math.round((TODAY-new Date(s.date))/DAY);if(age<7)l7+=s.minutes;if(age<30)l30+=s.minutes;});
+    const avg7=l7/7,avg30=l30/30;
+    if(avg30>5&&avg7<avg30*0.65&&out.filter(o=>o.cls==='down').length<1){const drop=Math.round((1-avg7/avg30)*100);
+      out.push({cls:'down',label:'Спад',html:`<p><span class="tag fact">факт</span><b>«${c.name}»</b>: за последние 7 дней в среднем ${Math.round(avg7)} мин/день против ${Math.round(avg30)} за месяц — падение на <b>${drop}%</b>.</p><p><span class="tag hyp">гипотеза</span>Темп просел недавно, а не весь период — похоже на ситуативную причину (нагрузка, усталость), а не на потерю интереса.</p><p><b>Рекомендация:</b> вернуть короткий ежедневный минимум на эту сферу, чтобы не порвать связь, пока причина не уйдёт.</p>`});}
+  });
+  // 2. рост по категории (Обучение)
+  CATS.forEach(c=>{let l7=0,p7=0;SESSIONS.forEach(s=>{if(s.catId!==c.id)return;const age=Math.round((TODAY-new Date(s.date))/DAY);if(age<7)l7+=s.minutes;else if(age<14)p7+=s.minutes;});
+    if(p7>5&&l7>p7*1.25&&out.filter(o=>o.cls==='up').length<1){const up=Math.round((l7/p7-1)*100);
+      out.push({cls:'up',label:'Рост',html:`<p><span class="tag fact">факт</span><b>«${c.name}»</b> прибавила <b>+${up}%</b> неделя к неделе (${Math.round(p7/60*10)/10}ч → ${Math.round(l7/60*10)/10}ч).</p><p><span class="tag hyp">гипотеза</span>Сфера на подъёме — удачный момент закрепить как устойчивую привычку.</p><p><b>Рекомендация:</b> зафиксировать текущий темп целью с дедлайном, пока импульс не угас.</p>`});}
+  });
+  // 3. привычка под угрозой
+  HABITS.forEach(h=>{const s=streak(h);const wp=weekPct(h);
+    if(wp<55&&out.filter(o=>o.label==='Серия под угрозой').length<1){
+      out.push({cls:'down',label:'Серия под угрозой',html:`<p><span class="tag fact">факт</span>Привычка <b>«${h.title}»</b>: выполнение за неделю всего <b>${wp}%</b>, текущая серия — ${s.cur} дн (рекорд ${s.mx}).</p><p><span class="tag hyp">гипотеза</span>Скорее всего слетела привязка к триггеру (время/место), а не мотивация.</p><p><b>Рекомендация:</b> пересобрать привычку на меньший объём и жёсткий якорь в распорядке.</p>`});}
+  });
+  // 4. цель близка
+  GOALS.forEach(g=>{if(g.type==='numeric'){const pr=goalProgress(g);if(pr>=0.88&&pr<1&&out.filter(o=>o.label==='Цель на финише').length<1){
+    out.push({cls:'up',label:'Цель на финише',html:`<p><span class="tag fact">факт</span>Цель <b>«${g.title}»</b> выполнена на <b>${Math.round(pr*100)}%</b> — осталось ${g.target-g.current} ${g.unit||''}.</p><p><b>Рекомендация:</b> добить рывком на этой неделе, пока близко, и освободить фокус под следующую.</p>`});}}
+  });
+  if(!out.length)return `<p style="color:var(--faint);font-size:14px">Пока недостаточно данных для выводов — поотмечай привычки и позасекай время.</p>`;
+  return out.map(o=>`<div class="insight ${o.cls}"><div class="ilabel">${o.label}</div>${o.html}</div>`).join('');
+}
+
+/* ================= модалки ================= */
+function closeModal(){document.getElementById('modalBg').classList.remove('show');document.getElementById('modalBg').innerHTML='';}
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal();});
+function catOptions(sel){return CATS.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.name}</option>`).join('');}
+
+let newGoalType='numeric';
+function openGoalModal(){const bg=document.getElementById('modalBg');
+  bg.innerHTML=`<div class="modal"><h3 class="serif">Новая цель</h3>
+    <div class="frow"><label>Название</label><input id="ngTitle" placeholder="Например: прочитать 12 книг"></div>
+    <div class="frow"><label>Сфера</label><select id="ngCat">${catOptions('c3')}</select></div>
+    <div class="frow"><label>Тип</label><div class="seg" id="ngSeg">
+      <button data-t="numeric" class="on">Числовая</button><button data-t="milestone">По вехам</button><button data-t="binary">Бинарная</button></div></div>
+    <div class="frow" id="ngNumWrap"><label>Цель и единица</label><div class="two"><input id="ngTarget" type="number" placeholder="12"><input id="ngUnit" placeholder="кн / км / $"></div></div>
+    <div class="modal-act"><button class="btn ghost" onclick="closeModal()">Отмена</button><button class="btn" onclick="createGoal()">Создать</button></div></div>`;
+  bg.classList.add('show');newGoalType='numeric';
+  bg.querySelectorAll('#ngSeg button').forEach(b=>b.onclick=()=>{newGoalType=b.dataset.t;bg.querySelectorAll('#ngSeg button').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('ngNumWrap').style.display=newGoalType==='numeric'?'flex':'none';});
+}
+async function createGoal(){const t=document.getElementById('ngTitle').value.trim();if(!t){toast('Впиши название');return;}
+  if(!db){toast('Нет подключения');return;}
+  const cat=document.getElementById('ngCat').value;
+  const payload={user_id:UID,title:t,category_id:cat,type:newGoalType,status:'active'};
+  if(newGoalType==='numeric'){payload.target_value=Number(document.getElementById('ngTarget').value)||10;payload.unit=document.getElementById('ngUnit').value.trim();payload.current_value=0;}
+  const ins=await db.from('goals').insert(payload).select().single();
+  if(ins.error){toast('Ошибка: '+ins.error.message);return;}
+  const g=ins.data;let mss=[];
+  if(newGoalType==='milestone'){const rows=[0,1,2].map(i=>({goal_id:g.id,user_id:UID,title:'Веха '+(i+1),done:false,sort_order:i}));
+    const mi=(await db.from('goal_milestones').insert(rows).select()).data||[];mss=mi.map(m=>({id:m.id,t:m.title,done:m.done}));}
+  GOALS.unshift({id:g.id,title:g.title,catId:g.category_id,type:g.type,target:g.target_value,current:Number(g.current_value)||0,unit:g.unit,status:g.status,createdAgo:1,milestones:mss});
+  closeModal();renderGoals();toast('Цель добавлена');}
+
+let newHabitFreq='daily';
+function openHabitModal(){const bg=document.getElementById('modalBg');
+  bg.innerHTML=`<div class="modal"><h3 class="serif">Новая привычка</h3>
+    <div class="frow"><label>Название</label><input id="nhTitle" placeholder="Например: 10 000 шагов"></div>
+    <div class="frow"><label>Сфера</label><select id="nhCat">${catOptions('c1')}</select></div>
+    <div class="frow"><label>Частота</label><div class="seg" id="nhSeg"><button data-f="daily" class="on">Ежедневно</button><button data-f="weekdays">По будням</button></div></div>
+    <div class="modal-act"><button class="btn ghost" onclick="closeModal()">Отмена</button><button class="btn" onclick="createHabit()">Создать</button></div></div>`;
+  bg.classList.add('show');newHabitFreq='daily';
+  bg.querySelectorAll('#nhSeg button').forEach(b=>b.onclick=()=>{newHabitFreq=b.dataset.f;bg.querySelectorAll('#nhSeg button').forEach(x=>x.classList.toggle('on',x===b));});
+}
+async function createHabit(){const t=document.getElementById('nhTitle').value.trim();if(!t){toast('Впиши название');return;}
+  if(!db){toast('Нет подключения');return;}
+  const ins=await db.from('habits').insert({user_id:UID,title:t,category_id:document.getElementById('nhCat').value,type:'binary',frequency_type:newHabitFreq}).select().single();
+  if(ins.error){toast('Ошибка: '+ins.error.message);return;}
+  const h=ins.data;HABITS.unshift({id:h.id,title:h.title,catId:h.category_id,freq:h.frequency_type==='weekdays'?'weekdays':'daily'});closeModal();renderHabits();toast('Привычка добавлена');}
+
+/* ================= старт ================= */
+function showAuth(){document.getElementById('authView').classList.add('show');document.getElementById('appView').classList.remove('show');}
+function showApp(email){document.getElementById('authView').classList.remove('show');document.getElementById('appView').classList.add('show');document.getElementById('who').textContent=email||'';go('timer');}
+async function sendMagicLink(){const email=document.getElementById('email').value.trim();const note=document.getElementById('authNote');note.className='auth-note';
+  if(!/.+@.+\..+/.test(email)){note.textContent='Введи корректную почту';note.classList.add('err');return;}
+  if(!db){note.textContent='Нет подключения к Supabase';note.classList.add('err');return;}
+  const b=document.getElementById('loginBtn');b.disabled=true;b.textContent='Отправляю…';
+  try{const {error}=await db.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});if(error)throw error;note.textContent='Ссылка отправлена. Проверь почту.';note.classList.add('ok');}
+  catch(e){note.textContent='Не отправилось: '+(e.message||'ошибка');note.classList.add('err');}
+  finally{b.disabled=false;b.textContent='Прислать ссылку для входа';}}
+async function logout(){if(db)await db.auth.signOut();location.hash='';showAuth();}
+
+buildNav();hydrate();renderCats();resetTimer();
+document.getElementById('playBtn').onclick=toggleTimer;
+document.getElementById('resetBtn').onclick=resetTimer;
+document.getElementById('loginBtn').onclick=sendMagicLink;
+document.getElementById('email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
+document.getElementById('logoutBtn').onclick=logout;
+document.getElementById('seedBtn').onclick=seedSampleData;
+(async()=>{
+  if(!db){showAuth();return;}
+  const {data}=await db.auth.getSession();
+  if(data&&data.session){UID=data.session.user.id;showApp(data.session.user.email);await loadAll();}
+  else showAuth();
+  db.auth.onAuthStateChange(async(_e,session)=>{if(session){UID=session.user.id;showApp(session.user.email);await loadAll();}else{UID=null;showAuth();}});
+})();
 </script>
 </body>
 </html>
