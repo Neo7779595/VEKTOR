@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1116">
+<title>Вектор — трекер развития</title>
+
+<!-- Telegram Mini App SDK: безвреден вне Telegram, нужен для Phase 5b -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase JS v2 (UMD) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   ВЕКТОР — дизайн-токены (приборная тёмная тема)
+   ============================================================ */
+:root{
+  --bg:#0E1116;
+  --surface:#161A21;
+  --surface-2:#1C212A;
+  --surface-3:#232934;
+  --line:rgba(255,255,255,.07);
+  --line-strong:rgba(255,255,255,.12);
+  --text:#E9ECEF;
+  --dim:#98A0AC;
+  --faint:#5A626E;
+  --accent:#E3A857;          /* амбер — импульс/фокус/активное */
+  --accent-soft:rgba(227,168,87,.13);
+  --accent-glow:rgba(227,168,87,.30);
+  --cool:#7B9FD0;            /* холодный slate — вторичные данные */
+  --good:#5FB98C;            /* тренд вверх */
+  --warn:#E08A63;            /* тренд вниз / спад */
+  --r:12px;
+  --r-sm:9px;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --t:.26s var(--ease);
+  --sidebar:248px;
+  --shell-max:1080px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:.1px;
+  overflow:hidden;
+}
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spacing:.2px}
+.mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+svg{display:block}
+
+/* акцентная подсветка фокуса для клавиатуры — часть quality floor */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ============================================================
+   Экран авторизации
+   ============================================================ */
+.auth{
+  position:fixed;inset:0;display:none;
+  align-items:center;justify-content:center;padding:24px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(227,168,87,.07), transparent 60%),
+    var(--bg);
+}
+.auth.show{display:flex}
+.auth-card{
+  width:100%;max-width:380px;text-align:center;
+  animation:rise .55s var(--ease) both;
+}
+.auth-mark{margin:0 auto 22px;width:54px;height:54px;color:var(--accent)}
+.auth h1{font-size:42px;line-height:1.05;font-weight:400;margin-bottom:6px}
+.auth .sub{color:var(--dim);font-size:14px;margin-bottom:30px}
+.field{
+  display:flex;flex-direction:column;gap:10px;text-align:left;
+}
+.field input{
+  width:100%;padding:13px 15px;border-radius:var(--r-sm);
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--text);font-size:15px;transition:border-color var(--t),background var(--t);
+}
+.field input::placeholder{color:var(--faint)}
+.field input:focus{outline:none;border-color:var(--accent);background:var(--surface-3)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:13px 18px;border-radius:var(--r-sm);font-weight:600;font-size:15px;
+  background:var(--accent);color:#1a1205;width:100%;
+  transition:transform .12s var(--ease),filter var(--t),opacity var(--t);
+}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--surface-3);filter:none}
+.auth-note{margin-top:18px;font-size:13px;color:var(--faint);min-height:18px;transition:color var(--t)}
+.auth-note.ok{color:var(--good)}
+.auth-note.err{color:var(--warn)}
+
+/* ============================================================
+   Оболочка приложения
+   ============================================================ */
+.app{position:fixed;inset:0;display:none;grid-template-columns:var(--sidebar) 1fr}
+.app.show{display:grid}
+
+/* — Сайдбар (десктоп) — */
+.side{
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+  padding:22px 16px;gap:4px;background:var(--surface);
+}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px}
+.brand .logo{width:30px;height:30px;color:var(--accent);flex:none}
+.brand .name{font-family:'Instrument Serif',serif;font-size:25px;letter-spacing:.4px}
+.brand .name b{font-weight:400}
+
+.nav{position:relative;display:flex;flex-direction:column;gap:2px}
+.nav-ind{
+  position:absolute;left:0;height:42px;width:100%;border-radius:var(--r-sm);
+  background:var(--accent-soft);border:1px solid rgba(227,168,87,.22);
+  transition:transform .3s var(--ease),opacity .2s var(--ease);
+  pointer-events:none;
+}
+.nav a{
+  position:relative;z-index:1;display:flex;align-items:center;gap:12px;
+  height:42px;padding:0 12px;border-radius:var(--r-sm);
+  color:var(--dim);font-weight:500;font-size:14.5px;
+  transition:color var(--t);
+}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:var(--accent)}
+.nav a svg{width:20px;height:20px;flex:none}
+.nav a .lbl{transition:transform var(--t)}
+
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid var(--line)}
+.side-foot button{
+  display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;
+  border-radius:var(--r-sm);color:var(--dim);font-size:14px;font-weight:500;
+  transition:color var(--t),background var(--t);width:100%;
+}
+.side-foot button:hover{color:var(--text);background:var(--surface-2)}
+.side-foot button svg{width:19px;height:19px;flex:none}
+.who{font-size:12px;color:var(--faint);padding:8px 12px 0;word-break:break-all}
+
+/* — Контент — */
+.main{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.main::-webkit-scrollbar{width:9px}
+.main::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:9px;border:3px solid var(--bg)}
+.wrap{max-width:var(--shell-max);margin:0 auto;padding:42px 40px 120px}
+
+.view{display:none}
+.view.active{display:block;animation:enter .3s var(--ease)}
+@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.head{margin-bottom:32px}
+.eyebrow{
+  font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:9px;
+}
+.head h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:40px;line-height:1.05}
+.head p{color:var(--dim);font-size:15px;margin-top:8px;max-width:54ch}
+
+/* — Карточки — (плоские, hairline, без теней) */
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:24px;
+}
+
+/* — Пустое состояние — */
+.empty{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:64px 28px;gap:8px;
+}
+.empty .glyph{width:64px;height:64px;color:var(--faint);margin-bottom:14px;opacity:.85}
+.empty h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px}
+.empty p{color:var(--dim);max-width:40ch;font-size:14.5px}
+.empty .btn{width:auto;margin-top:18px}
+.empty .btn svg{width:18px;height:18px}
+
+/* — Метрик-стрип (заготовка для статистики) — */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.metric .k{font-size:12.5px;color:var(--dim);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.metric .v{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-size:30px;margin-top:8px;letter-spacing:-.5px}
+.metric .v small{font-size:14px;color:var(--faint);margin-left:3px}
+.trend{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;margin-top:7px}
+.trend svg{width:14px;height:14px}
+.trend.up{color:var(--good)} .trend.down{color:var(--warn)} .trend.flat{color:var(--faint)}
+
+/* ============================================================
+   Сигнатура — кольцо таймера
+   ============================================================ */
+.timer-stage{display:flex;flex-direction:column;align-items:center;gap:30px;padding:18px 0 8px}
+.ring-wrap{position:relative;width:280px;height:280px}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-track{fill:none;stroke:var(--surface-2);stroke-width:10}
+.ring-prog{
+  fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;
+  filter:drop-shadow(0 0 9px var(--accent-glow));
+  transition:stroke-dashoffset 1s linear;
+}
+.ring-prog.idle{transition:stroke-dashoffset .4s var(--ease)}
+.ring-face{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:5px;
+}
+.ring-time{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-size:52px;letter-spacing:1px;line-height:1}
+.ring-state{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim);transition:color var(--t)}
+.ring-state.run{color:var(--accent)}
+
+.cats{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;max-width:560px}
+.chip{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--line);
+  color:var(--dim);font-size:13.5px;font-weight:500;
+  transition:border-color var(--t),color var(--t),background var(--t),transform .12s var(--ease);
+}
+.chip:hover{color:var(--text);border-color:var(--line-strong)}
+.chip:active{transform:scale(.97)}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.chip.sel{background:var(--accent-soft);border-color:rgba(227,168,87,.4);color:var(--text)}
+
+.timer-ctl{display:flex;gap:12px}
+.tbtn{
+  width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--surface);border:1px solid var(--line);color:var(--text);
+  transition:background var(--t),border-color var(--t),transform .12s var(--ease);
+}
+.tbtn:hover{background:var(--surface-2);border-color:var(--line-strong)}
+.tbtn:active{transform:scale(.93)}
+.tbtn svg{width:24px;height:24px}
+.tbtn.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;width:72px;height:72px}
+.tbtn.primary:hover{filter:brightness(1.06)}
+.tbtn.primary svg{width:28px;height:28px}
+.timer-hint{font-size:12.5px;color:var(--faint);margin-top:2px}
+
+/* — Демо-баннер конфигурации — */
+.banner{
+  display:flex;align-items:center;gap:11px;
+  background:var(--accent-soft);border:1px solid rgba(227,168,87,.25);
+  color:var(--text);padding:11px 16px;border-radius:var(--r-sm);
+  font-size:13.5px;margin-bottom:24px;
+}
+.banner svg{width:18px;height:18px;color:var(--accent);flex:none}
+.banner code{font-family:'DM Mono',monospace;font-size:12.5px;color:var(--accent)}
+
+/* — Тост — */
+.toast{
+  position:fixed;left:50%;bottom:96px;transform:translate(-50%,20px);
+  background:var(--surface-3);border:1px solid var(--line-strong);
+  color:var(--text);padding:11px 18px;border-radius:999px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:opacity .25s var(--ease),transform .25s var(--ease);z-index:50;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* — Нижняя навигация (мобайл) — */
+.tabbar{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:rgba(22,26,33,.92);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  grid-template-columns:repeat(4,1fr);
+}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--faint);transition:color var(--t)}
+.tabbar a svg{width:23px;height:23px}
+.tabbar a span{font-size:10.5px;font-weight:500}
+.tabbar a.active{color:var(--accent)}
+
+/* ============================================================
+   Адаптив
+   ============================================================ */
+@media (max-width:820px){
+  .app.show{grid-template-columns:1fr}
+  .side{display:none}
+  .tabbar{display:grid}
+  .wrap{padding:30px 20px 120px}
+  .head h2{font-size:32px}
+  .strip{grid-template-columns:repeat(2,1fr)}
+  .ring-wrap{width:240px;height:240px}
+  .ring-time{font-size:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ───────────── Авторизация ───────────── -->
+<div class="auth" id="authView">
+  <div class="auth-card">
+    <svg class="auth-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="24" cy="24" r="20"/>
+      <path d="M14 30 L21 22 L27 27 L34 17"/>
+      <path d="M34 23 V17 H28"/>
+    </svg>
+    <h1 class="serif">Вектор</h1>
+    <p class="sub">Трекер развития, целей и привычек</p>
+    <div class="field">
+      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="твоя почта">
+      <button class="btn" id="loginBtn">Прислать ссылку для входа</button>
+    </div>
+    <div class="auth-note" id="authNote"></div>
+  </div>
+</div>
+
+<!-- ───────────── Приложение ───────────── -->
+<div class="app" id="appView">
+  <!-- Сайдбар -->
+  <aside class="side">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="24" cy="24" r="20"/>
+        <path d="M14 30 L21 22 L27 27 L34 17"/>
+        <path d="M34 23 V17 H28"/>
+      </svg>
+      <span class="name"><b>Вектор</b></span>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-ind" id="navInd"></div>
+      <!-- ссылки вставляет JS -->
+    </nav>
+    <div class="side-foot">
+      <div class="who" id="who"></div>
+      <button id="settingsBtn"><span class="ic" data-ic="settings"></span><span>Настройки</span></button>
+      <button id="logoutBtn"><span class="ic" data-ic="logout"></span><span>Выйти</span></button>
+    </div>
+  </aside>
+
+  <!-- Контент -->
+  <main class="main">
+    <div class="wrap">
+      <div class="banner" id="banner" style="display:none">
+        <span class="ic" data-ic="info"></span>
+        <span>Демо-режим. Подключи Supabase — впиши <code>SUPABASE_URL</code> и <code>SUPABASE_ANON_KEY</code> в коде.</span>
+      </div>
+
+      <!-- 1 · Таймер -->
+      <section class="view" data-view="timer">
+        <div class="head">
+          <div class="eyebrow">Модуль 1</div>
+          <h2 class="serif">Таймер</h2>
+          <p>Выбери сферу развития и засеки время. Каждая сессия — вклад в траекторию.</p>
+        </div>
+        <div class="timer-stage">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 280 280">
+              <circle class="ring-track" cx="140" cy="140" r="128"/>
+              <circle class="ring-prog idle" id="ringProg" cx="140" cy="140" r="128"/>
+            </svg>
+            <div class="ring-face">
+              <div class="ring-time mono" id="ringTime">00:00</div>
+              <div class="ring-state" id="ringState">готов</div>
+            </div>
+          </div>
+          <div class="cats" id="catChips"></div>
+          <div class="timer-ctl">
+            <button class="tbtn" id="resetBtn" title="Сброс"><span class="ic" data-ic="reset"></span></button>
+            <button class="tbtn primary" id="playBtn" title="Старт"><span class="ic" data-ic="play"></span></button>
+          </div>
+          <div class="timer-hint">Сохранение сессий в базу — Phase 1</div>
+        </div>
+      </section>
+
+      <!-- 2 · Цели -->
+      <section class="view" data-view="goals">
+        <div class="head">
+          <div class="eyebrow">Модуль 2</div>
+          <h2 class="serif">Цели</h2>
+          <p>Числовые, по вехам и бинарные. С дедлайном, прогрессом и прогнозом достижения.</p>
+        </div>
+        <div class="card empty">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="11"/><circle cx="24" cy="24" r="4"/>
+          </svg>
+          <h3 class="serif">Целей пока нет</h3>
+          <p>Поставь первую — и здесь появится её траектория и прогноз срока.</p>
+          <button class="btn phase" data-phase="2"><span class="ic" data-ic="plus"></span>Новая цель</button>
+        </div>
+      </section>
+
+      <!-- 3 · Привычки -->
+      <section class="view" data-view="habits">
+        <div class="head">
+          <div class="eyebrow">Модуль 3</div>
+          <h2 class="serif">Привычки</h2>
+          <p>Бинарные, количественные и временные. Серии, частота и напоминания в Telegram.</p>
+        </div>
+        <div class="card empty">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 17 H30 a8 8 0 0 1 0 16 H17"/><path d="M21 11 L14 17 L21 23"/>
+            <path d="M34 31 H18 a8 8 0 0 1 0-16 H31" opacity=".35"/>
+          </svg>
+          <h3 class="serif">Привычек пока нет</h3>
+          <p>Добавь первую, чтобы начать серию и видеть процент выполнения.</p>
+          <button class="btn phase" data-phase="3"><span class="ic" data-ic="plus"></span>Новая привычка</button>
+        </div>
+      </section>
+
+      <!-- 4 · Статистика -->
+      <section class="view" data-view="stats">
+        <div class="head">
+          <div class="eyebrow">Модуль 4</div>
+          <h2 class="serif">Статистика</h2>
+          <p>Скользящие средние, тренды роста и спада, серии и прогноз целей. С пометками факт / гипотеза.</p>
+        </div>
+        <div class="strip">
+          <div class="metric">
+            <div class="k"><span class="ic" data-ic="clock"></span>Время за неделю</div>
+            <div class="v">— <small>ч</small></div>
+            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
+          </div>
+          <div class="metric">
+            <div class="k"><span class="ic" data-ic="flame"></span>Текущая серия</div>
+            <div class="v">— <small>дн</small></div>
+            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
+          </div>
+          <div class="metric">
+            <div class="k"><span class="ic" data-ic="check"></span>Выполнение</div>
+            <div class="v">— <small>%</small></div>
+            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
+          </div>
+          <div class="metric">
+            <div class="k"><span class="ic" data-ic="target"></span>Целей активно</div>
+            <div class="v">—</div>
+            <div class="trend flat"><span class="ic" data-ic="flat"></span>нет данных</div>
+          </div>
+        </div>
+        <div class="card empty">
+          <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 38 H40"/><path d="M11 30 L20 22 L27 27 L38 14"/>
+            <path d="M38 21 V14 H31"/>
+          </svg>
+          <h3 class="serif">Графики появятся с данными</h3>
+          <p>Засекай время и отмечай привычки — движок начнёт строить тренды и инсайты.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Нижняя навигация (мобайл) -->
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ВЕКТОР — Phase 0 · логика каркаса
+   ============================================================ */
+
+/* — 1. Конфигурация Supabase —
+   Впиши значения своего проекта. Пока тут плейсхолдеры —
+   приложение работает в демо-режиме (без входа). */
+const SUPABASE_URL      = 'https://zwqgptrcwhatyhkqzrda.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3cWdwdHJjd2hhdHloa3F6cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDM5MzgsImV4cCI6MjA5NjYxOTkzOH0.fUq6IxvZjTc7qTMlWf2zF4Wrcl8uUCa9ExFXyvMZhtY';
+
+const IS_CONFIGURED = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+let db = null;
+if (IS_CONFIGURED && window.supabase) {
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+/* — 2. Иконки (единый stroke-стиль, currentColor) — */
+const ICONS = {
+  timer:   '<circle cx="12" cy="13" r="8"/><path d="M12 9 v4 l3 2"/><path d="M9 2 h6"/>',
+  target:  '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
+  habits:  '<path d="M7 8 H15 a4 4 0 0 1 0 8 H9"/><path d="M11 5 L7 8 L11 11"/>',
+  stats:   '<path d="M4 19 H20"/><path d="M6 15 L11 10 L14 13 L19 7"/><path d="M19 11 V7 H15"/>',
+  settings:'<path d="M6 5 h12 M6 12 h12 M6 19 h12"/><circle cx="9" cy="5" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="19" r="2"/>',
+  logout:  '<path d="M14 4 H6 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h8"/><path d="M16 8 l4 4 -4 4"/><path d="M20 12 H10"/>',
+  plus:    '<path d="M12 5 v14 M5 12 h14"/>',
+  play:    '<path d="M8 5 v14 l11-7 z" fill="currentColor" stroke="none"/>',
+  pause:   '<rect x="7" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/><rect x="13" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none"/>',
+  reset:   '<path d="M4 12 a8 8 0 1 0 2.3-5.6"/><path d="M4 4 v4 h4"/>',
+  info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11 v5 M12 8 h.01"/>',
+  clock:   '<circle cx="12" cy="12" r="8"/><path d="M12 8 v4 l3 2"/>',
+  flame:   '<path d="M12 3 c3 4 5 6 5 10 a5 5 0 0 1-10 0 c0-2 1-3 2-4 c0 2 1 3 3 3 c0-4-2-5 0-9 z"/>',
+  check:   '<path d="M4 12 l5 5 L20 6"/>',
+  flat:    '<path d="M5 12 h14"/>',
+  up:      '<path d="M5 17 L12 10 L16 14 L20 8"/><path d="M20 12 V8 H16"/>',
+  down:    '<path d="M5 7 L12 14 L16 10 L20 16"/><path d="M20 12 V16 H16"/>',
+};
+function icon(name, cls){
+  const body = ICONS[name] || '';
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="${cls||''}">${body}</svg>`;
+}
+// подставить иконки в плейсхолдеры <span class="ic" data-ic="...">
+function hydrateIcons(root){
+  (root||document).querySelectorAll('.ic[data-ic]').forEach(el=>{
+    el.innerHTML = icon(el.dataset.ic);
+    el.style.display='inline-flex'; el.firstChild.style.width='1em'; el.firstChild.style.height='1em';
+  });
+}
+
+/* — 3. Навигация и роутинг — */
+const ROUTES = [
+  {id:'timer',  label:'Таймер',     icon:'timer'},
+  {id:'goals',  label:'Цели',       icon:'target'},
+  {id:'habits', label:'Привычки',   icon:'habits'},
+  {id:'stats',  label:'Статистика', icon:'stats'},
+];
+
+function buildNav(){
+  const nav = document.getElementById('nav');
+  const tab = document.getElementById('tabbar');
+  ROUTES.forEach(r=>{
+    const a = document.createElement('a');
+    a.href = '#'+r.id; a.dataset.route = r.id;
+    a.innerHTML = icon(r.icon) + `<span class="lbl">${r.label}</span>`;
+    nav.appendChild(a);
+
+    const t = document.createElement('a');
+    t.href = '#'+r.id; t.dataset.route = r.id;
+    t.innerHTML = icon(r.icon) + `<span>${r.label}</span>`;
+    tab.appendChild(t);
+  });
+}
+
+function moveIndicator(idx){
+  const ind = document.getElementById('navInd');
+  if(idx < 0){ ind.style.opacity = 0; return; }
+  ind.style.opacity = 1;
+  ind.style.transform = `translateY(${idx*44}px)`;
+}
+
+function setRoute(id){
+  if(!ROUTES.some(r=>r.id===id)) id = 'timer';
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===id));
+  document.querySelectorAll('[data-route]').forEach(a=>a.classList.toggle('active', a.dataset.route===id));
+  moveIndicator(ROUTES.findIndex(r=>r.id===id));
+  document.querySelector('.main').scrollTop = 0;
+}
+window.addEventListener('hashchange', ()=> setRoute(location.hash.slice(1)));
+
+/* — 4. Тост — */
+let toastT;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('show'), 2400);
+}
+
+/* — 5. Таймер (рабочий секундомер + кольцо) — */
+const CYCLE = 60 * 60;            // полный оборот кольца = 1 час
+const R = 128, CIRC = 2 * Math.PI * R;
+let elapsed = 0, running = false, tick = null, selectedCat = null;
+
+const DEMO_CATS = [
+  {name:'Здоровье',  color:'#5FB98C'},
+  {name:'Карьера',   color:'#E3A857'},
+  {name:'Обучение',  color:'#7B9FD0'},
+  {name:'Финансы',   color:'#C9A06A'},
+  {name:'Отношения', color:'#D98BA5'},
+  {name:'Творчество',color:'#9B8BD9'},
+];
+
+function renderCats(){
+  const box = document.getElementById('catChips');
+  box.innerHTML = '';
+  DEMO_CATS.forEach((c,i)=>{
+    const b = document.createElement('button');
+    b.className = 'chip' + (i===selectedCat?' sel':'');
+    b.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.name}`;
+    b.onclick = ()=>{ selectedCat = i; renderCats();
+      document.documentElement.style.setProperty('--accent', c.color); };
+    box.appendChild(b);
+  });
+}
+
+function fmt(s){
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
+  const mm = String(m).padStart(2,'0'), ss = String(sec).padStart(2,'0');
+  return h>0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function paintRing(){
+  const prog = document.getElementById('ringProg');
+  const frac = (elapsed % CYCLE) / CYCLE;
+  prog.setAttribute('stroke-dasharray', CIRC);
+  prog.setAttribute('stroke-dashoffset', CIRC * (1 - frac));
+  document.getElementById('ringTime').textContent = fmt(elapsed);
+}
+function setRunUI(on){
+  const btn = document.getElementById('playBtn');
+  const st = document.getElementById('ringState');
+  const prog = document.getElementById('ringProg');
+  btn.innerHTML = icon(on ? 'pause' : 'play');
+  st.textContent = on ? 'идёт' : (elapsed ? 'пауза' : 'готов');
+  st.classList.toggle('run', on);
+  prog.classList.toggle('idle', !on);
+}
+function toggleTimer(){
+  running = !running;
+  if(running){
+    if(selectedCat===null){ selectedCat=0; renderCats();
+      document.documentElement.style.setProperty('--accent', DEMO_CATS[0].color); }
+    tick = setInterval(()=>{ elapsed++; paintRing(); }, 1000);
+  } else { clearInterval(tick); }
+  setRunUI(running);
+}
+function resetTimer(){
+  clearInterval(tick); running=false; elapsed=0;
+  document.getElementById('ringProg').classList.add('idle');
+  paintRing(); setRunUI(false);
+}
+
+/* — 6. Авторизация / сессия — */
+function showAuth(){ document.getElementById('authView').classList.add('show'); document.getElementById('appView').classList.remove('show'); }
+function showApp(email){
+  document.getElementById('authView').classList.remove('show');
+  document.getElementById('appView').classList.add('show');
+  if(email) document.getElementById('who').textContent = email;
+  setRoute(location.hash.slice(1) || 'timer');
+}
+
+async function sendMagicLink(){
+  const email = document.getElementById('email').value.trim();
+  const note = document.getElementById('authNote');
+  note.className = 'auth-note';
+  if(!/.+@.+\..+/.test(email)){ note.textContent='Введи корректную почту'; note.classList.add('err'); return; }
+  if(!db){ note.textContent='Supabase не подключён (демо-режим)'; note.classList.add('err'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Отправляю…';
+  try{
+    const { error } = await db.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+    if(error) throw error;
+    note.textContent = 'Ссылка отправлена. Проверь почту.'; note.classList.add('ok');
+  }catch(e){
+    note.textContent = 'Не отправилось: ' + (e.message || 'ошибка'); note.classList.add('err');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Прислать ссылку для входа';
+  }
+}
+
+async function logout(){
+  if(db) await db.auth.signOut();
+  location.hash = ''; showAuth();
+}
+
+/* — 7. Telegram Mini App (graceful) — */
+function initTelegram(){
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if(!tg || !tg.initData) return;          // не внутри Telegram — выходим
+  try{ tg.ready(); tg.expand(); }catch(e){}
+  // Привязка initData → сессия Supabase делается в Phase 5b (через Edge Function).
+}
+
+/* — 8. Старт — */
+async function boot(){
+  buildNav();
+  hydrateIcons();
+  renderCats();
+  resetTimer();
+  initTelegram();
+
+  document.getElementById('loginBtn').onclick = sendMagicLink;
+  document.getElementById('email').addEventListener('keydown', e=>{ if(e.key==='Enter') sendMagicLink(); });
+  document.getElementById('logoutBtn').onclick = logout;
+  document.getElementById('settingsBtn').onclick = ()=> toast('Настройки — позже');
+  document.getElementById('playBtn').onclick = toggleTimer;
+  document.getElementById('resetBtn').onclick = resetTimer;
+  document.querySelectorAll('.btn.phase').forEach(b=>{
+    b.onclick = ()=> toast('Появится в Phase ' + b.dataset.phase);
+  });
+
+  if(!IS_CONFIGURED){
+    // демо-режим: показываем приложение сразу, без входа
+    document.getElementById('banner').style.display = 'flex';
+    hydrateIcons(document.getElementById('banner'));
+    showApp('демо-режим');
+    return;
+  }
+
+  // реальный режим: проверяем сессию
+  const { data } = await db.auth.getSession();
+  if(data && data.session){ showApp(data.session.user.email); }
+  else { showAuth(); }
+
+  db.auth.onAuthStateChange((_e, session)=>{
+    if(session){ showApp(session.user.email); }
+    else { showAuth(); }
+  });
+}
+boot();
+</script>
+</body>
+</html>
